@@ -141,7 +141,7 @@ public class AuthenticationService {
             String query = "INSERT INTO movieUsers (UserName, Password, Email, Number) VALUES (?, ?, ?, ?)";
 
             for (User u : users) {
-                // Only insert users that don't exist (avoid duplicates)
+
                 if (!userExists(u.getEmail(),  con)) {
 
                     PreparedStatement stmt = con.prepareStatement(query);
@@ -169,7 +169,8 @@ public class AuthenticationService {
         for (int i = 0; i < newpassword.length(); i++) {
             if (Character.isUpperCase(newpassword.charAt(i))) {
                 hasCapital = true;
-            } else if (Character.isDigit(newpassword.charAt(i))) {
+            }
+            else if (Character.isDigit(newpassword.charAt(i))) {
                 hasNumber = true;
             }
         }

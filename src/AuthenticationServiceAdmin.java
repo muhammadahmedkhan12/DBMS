@@ -1,5 +1,11 @@
+import Database.DBConnection;
+
 import java.io.File;
 import java.io.FileWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -14,7 +20,6 @@ public class AuthenticationServiceAdmin {
 
     public AuthenticationServiceAdmin() {
         admins = new ArrayList<>();
-        admins.add(new Admin("mushtaq", "mushtaq"));
     }
 
 
@@ -34,7 +39,7 @@ public class AuthenticationServiceAdmin {
         return temporary;
     }
     public String MakeNewAdmin(String username, String password) {
-        if (LoggedInAdmin == null || !LoggedInAdmin.getUsername().equals("mushtaq")){
+        if (LoggedInAdmin == null || !LoggedInAdmin.getUsername().equals("mushtaq12")){
             return "Only mushtaq can make new admins";
         }
         String temp = "";
@@ -59,39 +64,52 @@ public class AuthenticationServiceAdmin {
             return "password could not be less than 8";
         }
         else if ((password.contains("@") || password.contains("#") || password.contains("$")) && hasNumber && hasCapital) {
+            admins.clear();
             admins.add(new Admin(username, password));
             saveAdmins();
             return "New Admin Made Successfully";
-        } else {
+        }
+        else {
             return "password did not meet conditions";
         }
     }
     public void loadAdmins(){
-        try(Scanner filescanner = new Scanner(new File("admins.txt"))){
-            while (filescanner.hasNextLine()){
-                String[] data = filescanner.nextLine().split(",");
-                if (data.length == 2){
-                    String username = data[0];
-                    String password = data[1];
-                    admins.add(new Admin(username,password));
-                }
+        try(Connection con = DBConnection.getConnection()){
+            String query = "SELECT * FROM admin";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            while (rs.next()){
+                Admin a = new Admin(
+                        rs.getString("username"),
+                        rs.getString("password")
+                );
+                admins.add(a);
             }
 
-        } catch (Exception e) {
+
+        }
+        catch (Exception e) {
 
         }
     }
     public void saveAdmins(){
-        try(FileWriter writer = new FileWriter("admins.txt")){
-            for (int i = 0; i < admins.size(); i++) {
-                User user = admins.get(i);
-                writer.write(user.getUsername() + "," +user.getPassword() + "\n");
+        try(Connection con = DBConnection.getConnection()){
+            String query = "INSERT INTO admin (username,password) VALUES (?, ?)";
+            PreparedStatement preparedStatement = con.prepareStatement(query);
 
+            for (Admin a  : admins) {
+
+                preparedStatement.setString(1, a.getUsername());
+                preparedStatement.setString(2, a.getPassword());
+
+                preparedStatement.executeUpdate();
             }
         }
         catch (Exception e){
 
         }
     }
+
+
 
 }

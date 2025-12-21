@@ -17,3 +17,6 @@ Qasim2,loveguru,cinegoldplex | Screen S2 (3D), 100 seats @ 5:30pm,30,cash
 testuser,animal 3,mushtaq | Screen S1 (2D), 1000 seats @ 2;00pm,300,cash
 Faisal10,dhoom 2,nueplex | Screen S2 (2D), 21 seats @ 4;00pm,1,cash
 mushtaq,cs,gold | Screen S2 (3D), 20 seats @ 9;00pm,8,cash
+testuser,animal 3,mushtaq | Screen S1 (2D), 1000 seats @ 2;00pm,5,cash
+mushtaq12,dhoom 2,nueplex | Screen S2 (2D), 21 seats @ 4;00pm,2,cash
+ahmed12,animal 3,mushtaq | Screen S1 (2D), 1000 seats @ 2;00pm,2,cash

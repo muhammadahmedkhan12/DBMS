@@ -156,7 +156,8 @@ public class AuthenticationService {
             }
 
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }

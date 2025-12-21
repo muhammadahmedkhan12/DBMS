@@ -1,7 +1,13 @@
 package Ticket;
 
+import Database.DBConnection;
+
 import java.io.File;
 import java.io.FileWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -27,34 +33,52 @@ public class TicketManager {
     }
 
     public void loadtickets() {
-        try {
-            Scanner scanner = new Scanner(new File("tickets.txt"));
-            while (scanner.hasNextLine()) {
-                String[] data = scanner.nextLine().split(",");
-                if (data.length == 7) {
-                    tickets.add(new Ticket(data[0], data[1], data[2], data[3], data[4], data[5], data[6]));
+        try(Connection con = DBConnection.getConnection()) {
+            String query = "SELECT * FROM ticket";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                for (Ticket t : tickets) {
+                    Ticket ticket = new Ticket(
+                            rs.getString("ticketid"),
+                            rs.getString("username"),
+                            rs.getString("seatid"),
+                            rs.getString("showtimeid"),
+                            rs.getString("cinemaid"),
+                            rs.getString("movieid"),
+                            rs.getString("paymentmethod")
+                    );
+                    tickets.add(ticket);
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-        public void savetickets() {
-            try (FileWriter writer = new FileWriter("tickets.txt")) {
-                for (Ticket t : tickets) {
-                    writer.write(t.getTicketid() + "," + t.getUsername() + "," + t.getSeatid() + "," +
-                            t.getShowtimeid() + "," + t.getCinemaid() + "," + t.getMovieid() + "," +
-                            t.getPaymentmethod() + "\n");
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    public void savetickets() {
+        try (Connection con = DBConnection.getConnection()) {
+            String query = "INSERT INTO ticket (ticketid, username, seatid, showtimeid, cinemaid, movieid, paymentmethod) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+            for (Ticket t : tickets) {
+                PreparedStatement ps = con.prepareStatement(query);
+                ps.setString(1, t.getTicketid());
+                ps.setString(2, t.getUsername());
+                ps.setString(3, t.getSeatid());
+                ps.setString(4, t.getShowtimeid());
+                ps.setString(5, t.getCinemaid());
+                ps.setString(6, t.getMovieid());
+                ps.setString(7, t.getPaymentmethod());
+                ps.executeUpdate();
             }
         }
-
-
-
-            }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
 
 
 

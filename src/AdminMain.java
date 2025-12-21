@@ -1,5 +1,7 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -23,23 +25,22 @@ public class AdminMain extends JFrame{
     private JButton deletecinemabutton;
     private JButton EditMoviesbutton;
     private JButton Addnewmoviesbutton;
-    private JButton EditMovies;
-    private JButton DeleteMovieButton;
-    private JButton Addcinemabutton;
-    private JButton editCinemaButton;
-    private JButton Deletecinemabutton;
     private JButton AddScreenButton;
     private JButton DeleteScreenButton;
     private JButton backButton;
 
+    // unified preferred width for small/back buttons
+    private static final int BUTTON_PREF_WIDTH = 140;
 
     public AdminMain() {
         MyPanel = new JPanel();
         setContentPane(MyPanel);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(1200, 600);
+        setSize(1300, 900);
         setLocationRelativeTo(null);
-        setVisible(true);
+
+        // constrain central content width so table/buttons do not stretch full window
+        final int INNER_MAX_WIDTH = 1000;
 
         tableModel = new DefaultTableModel(new Object[]{"Movie ID", "Name", "Rating", "Add Movie", "Edit Movie"}, 0) {
             public boolean isCellEditable(int row, int column) {
@@ -49,8 +50,14 @@ public class AdminMain extends JFrame{
         movieTable = new JTable(tableModel);
         movieTable.setRowHeight(30);
         tableScrollPane = new JScrollPane(movieTable);
+        // constrain table scroll pane size so it doesn't expand full width
+        tableScrollPane.setPreferredSize(new Dimension(INNER_MAX_WIDTH, 360));
+        tableScrollPane.setMaximumSize(new Dimension(INNER_MAX_WIDTH, Integer.MAX_VALUE));
         MyPanel.setLayout(new BorderLayout());
-        MyPanel.add(tableScrollPane, BorderLayout.CENTER);
+        JPanel centerWrapper = new JPanel(new GridBagLayout());
+        centerWrapper.setOpaque(false);
+        centerWrapper.add(tableScrollPane);
+        MyPanel.add(centerWrapper, BorderLayout.CENTER);
 
         loadMoviesToTable();
 
@@ -62,10 +69,13 @@ public class AdminMain extends JFrame{
         JPanel controlsPanel = new JPanel(new BorderLayout()); ////
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10)); // center buttons
 
         JPanel backPanel = new JPanel(new BorderLayout()); ////
         backButton = new JButton("Back");
+        // make back button a bit narrower and keep it centered
+        backButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height));
+        backButton.setHorizontalAlignment(SwingConstants.CENTER);
         backPanel.add(backButton, BorderLayout.CENTER);
 
         NewAdminButton = new JButton("New Admin");
@@ -87,9 +97,23 @@ public class AdminMain extends JFrame{
         buttonPanel.add(AddScreenButton);
         buttonPanel.add(DeleteScreenButton);
 
-        buttonPanel.setPreferredSize(new Dimension(1200, 60));
-        controlsPanel.add(buttonPanel, BorderLayout.NORTH);
-        controlsPanel.add(backPanel, BorderLayout.SOUTH);
+        // stack the main horizontal button row and the back button (Back on the next line)
+        JPanel outerButtonsPanel = new JPanel();
+        outerButtonsPanel.setOpaque(false);
+        outerButtonsPanel.setLayout(new BoxLayout(outerButtonsPanel, BoxLayout.Y_AXIS));
+        // center the horizontal button row inside a GridBagLayout wrapper so it stays centered
+        JPanel rowWrapper = new JPanel(new GridBagLayout());
+        rowWrapper.setOpaque(false);
+        rowWrapper.add(buttonPanel);
+        outerButtonsPanel.add(rowWrapper);
+        outerButtonsPanel.add(Box.createVerticalStrut(8)); // small gap between main row and Back
+        // add the backPanel centered on its own line
+        JPanel backRowWrapper = new JPanel(new GridBagLayout());
+        backRowWrapper.setOpaque(false);
+        backRowWrapper.add(backPanel);
+        outerButtonsPanel.add(backRowWrapper);
+
+        controlsPanel.add(outerButtonsPanel, BorderLayout.NORTH);
 
         MyPanel.add(controlsPanel, BorderLayout.SOUTH);
 
@@ -158,8 +182,11 @@ public class AdminMain extends JFrame{
             }
         });
 
+        // apply theme after components are created but before showing the frame
+        applyTheme();
 
-
+        // show last
+        setVisible(true);
     }
 
     private void loadMoviesToTable() {
@@ -284,9 +311,12 @@ public class AdminMain extends JFrame{
                     dispose();
                 }
             });
+            // reduce width of dialog buttons
+            addButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height));
             add(addButton);
 
             JButton cancelButton = new JButton("Cancel");
+            cancelButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height));
             cancelButton.addActionListener(e -> dispose());
             add(cancelButton);
 
@@ -359,9 +389,11 @@ public class AdminMain extends JFrame{
                     }
                 }
             });
+            saveButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, saveButton.getPreferredSize().height));
             add(saveButton);
 
             JButton cancelButton = new JButton("Cancel");
+            cancelButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height));
             cancelButton.addActionListener(e -> dispose());
             add(cancelButton);
 
@@ -419,13 +451,17 @@ public class AdminMain extends JFrame{
                     dispose();
                 }
             });
+            // make dialog buttons narrower
+            addButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height));
             add(addButton);
 
             JButton backButton = new JButton("Back");
+            backButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height));
             backButton.addActionListener(e -> dispose());
             add(backButton);
 
             JButton cancelButton = new JButton("Cancel");
+            cancelButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height));
             cancelButton.addActionListener(e -> dispose());
             add(cancelButton);
 
@@ -470,13 +506,16 @@ public class AdminMain extends JFrame{
             JScrollPane scrollPane = new JScrollPane(mainPanel);
             add(scrollPane, BorderLayout.CENTER);
 
-            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            // center bottom buttons and make them narrow
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
 
             JButton backButton = new JButton("Back");
+            backButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height));
             backButton.addActionListener(e -> dispose());
             bottomPanel.add(backButton);
 
             JButton closeButton = new JButton("Close");
+            closeButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, closeButton.getPreferredSize().height));
             closeButton.addActionListener(e -> dispose());
             bottomPanel.add(closeButton);
 
@@ -527,8 +566,10 @@ public class AdminMain extends JFrame{
                     dispose();
                 }
             });
+            addButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height));
             add(addButton);
             JButton cancelButton = new JButton("Cancel");
+            cancelButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height));
             cancelButton.addActionListener(e -> dispose());
             add(cancelButton);
 
@@ -536,7 +577,130 @@ public class AdminMain extends JFrame{
         }
     }
 
+    // Theme helper: style header, buttons and table header
+    private void applyTheme() {
+        Color bg = new Color(45, 62, 80);
+        Color fg = Color.WHITE;
+        Color primary = new Color(0, 150, 136);
+        Color danger = new Color(220, 80, 80);
+        // unified button color requested
+        Color btnColor = new Color(30, 45, 60);
+        Font headerFont = new Font("Segoe UI", Font.BOLD, 20);
+        Font controlFont = new Font("Segoe UI", Font.PLAIN, 14);
+
+        if (MyPanel == null) return;
+
+        MyPanel.setBackground(bg);
+        MyPanel.setOpaque(true);
+
+        // Header (top-center)
+        if (WelcomeLabel == null) {
+            WelcomeLabel = new JLabel("Welcome, Admin");
+        }
+        WelcomeLabel.setFont(headerFont);
+        WelcomeLabel.setForeground(fg);
+        WelcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        WelcomeLabel.setBorder(new EmptyBorder(18, 0, 18, 0));
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        header.setOpaque(false);
+        header.add(WelcomeLabel);
+
+        // If a header isn't already added at NORTH, add it
+        Component northComp = null;
+        LayoutManager lm = MyPanel.getLayout();
+        if (lm instanceof BorderLayout) {
+            // simple check: if there's a component at NORTH already, remove it and replace with our header
+            // (ensures our header is top)
+            MyPanel.add(header, BorderLayout.NORTH);
+        } else {
+            // ensure MyPanel uses BorderLayout so header/top placement works
+            MyPanel.setLayout(new BorderLayout());
+            MyPanel.add(header, BorderLayout.NORTH);
+        }
+
+        // Style buttons
+        java.util.List<JButton> primaryBtns = java.util.Arrays.asList(
+                NewAdminButton, EditMoviesbutton, Addnewmoviesbutton, editcinemabutton, Addnewcinema, AddScreenButton
+        );
+        java.util.List<JButton> dangerBtns = java.util.Arrays.asList(
+                Deletemoviebutton, deletecinemabutton, DeleteScreenButton /*, backButton removed here to avoid enforcing same size */
+        );
+
+        java.util.function.Consumer<JButton> stylePrimary = b -> {
+            if (b == null) return;
+            b.setFont(controlFont);
+            b.setBackground(btnColor);
+            b.setForeground(fg);
+            b.setOpaque(true);
+            b.setFocusPainted(false);
+            b.setHorizontalAlignment(SwingConstants.CENTER);
+            b.setHorizontalTextPosition(SwingConstants.CENTER);
+            b.setMargin(new Insets(6, 12, 6, 12));
+        };
+        java.util.function.Consumer<JButton> styleDanger = b -> {
+            if (b == null) return;
+            b.setFont(controlFont);
+            b.setBackground(btnColor);
+            b.setForeground(fg);
+            b.setOpaque(true);
+            b.setFocusPainted(false);
+            b.setHorizontalAlignment(SwingConstants.CENTER);
+            b.setHorizontalTextPosition(SwingConstants.CENTER);
+            b.setMargin(new Insets(6, 12, 6, 12));
+        };
+
+        // style backButton separately so it is smaller and centered
+        if (backButton != null) {
+            backButton.setFont(controlFont);
+
+            backButton.setForeground(fg);          // text color
+            backButton.setBackground(btnColor); // button background
+
+            backButton.setOpaque(true);
+            backButton.setFocusPainted(false);
+
+            backButton.setHorizontalAlignment(SwingConstants.CENTER);
+            backButton.setHorizontalTextPosition(SwingConstants.CENTER);
+
+            backButton.setMargin(new Insets(6, 12, 6, 12));
+            backButton.setPreferredSize(
+                    new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height)
+            );
+            backButton.setContentAreaFilled(false);
+            backButton.setOpaque(true);
+
+        }
+
+
+        for (JButton b : primaryBtns) stylePrimary.accept(b);
+        for (JButton b : dangerBtns) styleDanger.accept(b);
+        // do not force backButton in dangerBtns loop to avoid overriding its specific size
+
+        // Style the table header for better contrast
+        JTableHeader th = movieTable.getTableHeader();
+        th.setBackground(new Color(30, 45, 60));
+        th.setForeground(fg);
+        th.setFont(controlFont.deriveFont(Font.BOLD));
+        movieTable.setFont(controlFont);
+        movieTable.setForeground(Color.BLACK);
+        movieTable.setSelectionBackground(primary);
+        movieTable.setSelectionForeground(Color.WHITE);
+
+        // Ensure controlsPanel backgrounds are matched (if present)
+        // The controls panel is the SOUTH component we added earlier; iterate children and set opaque/bg
+        for (Component comp : MyPanel.getComponents()) {
+            if (comp instanceof JPanel) {
+                comp.setBackground(bg);
+                comp.setForeground(fg);
+//                comp.setOpaque(true);
+            }
+        }
+
+        revalidate();
+        repaint();
+    }
+
     public static void main(String[] args) {
-        new AdminMain();
+        SwingUtilities.invokeLater(() -> new AdminMain());
     }
 }

@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.*;
 
 public class AdminWelcome extends JFrame{
     private JLabel WelcomeLabel;
@@ -13,6 +14,12 @@ public class AdminWelcome extends JFrame{
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(500,300);
         setLocationRelativeTo(null);
+
+        // apply centralized theme (matches Start/AdminWelcome look exactly)
+        Start.applyTheme(this, MyPanel, WelcomeLabel,
+                new JButton[]{signInButton},
+                new JButton[]{backButton});
+
         setVisible(true);
         signInButton.addActionListener(new ActionListener() {
             @Override
@@ -32,6 +39,12 @@ public class AdminWelcome extends JFrame{
     }
 
     public static void main(String[] args) {
-        new AdminWelcome();
+        // run on EDT
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new AdminWelcome();
+            }
+        });
     }
 }

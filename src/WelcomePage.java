@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.*; // added for Color/Font
 
 public class WelcomePage extends JFrame{
     private JLabel WelcomeLabel;
@@ -13,8 +14,14 @@ public class WelcomePage extends JFrame{
         setContentPane(WelcomePanel);
         setTitle("Cinema Ticket Booking System");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(500,300);
+        setSize(1300, 900);
         setLocationRelativeTo(null);
+
+        // apply same centralized theme as Start/AdminWelcome
+        Start.applyTheme(this, WelcomePanel, WelcomeLabel,
+                new JButton[]{SignIn, SignUp},
+                new JButton[]{backButton});
+
         setVisible(true);
         SignIn.addActionListener(new ActionListener() {
             @Override
@@ -40,6 +47,12 @@ public class WelcomePage extends JFrame{
     }
 
     public static void main(String[] args) {
-        new WelcomePage();
+        // run on EDT
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new WelcomePage();
+            }
+        });
     }
 }

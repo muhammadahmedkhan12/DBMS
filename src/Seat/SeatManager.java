@@ -15,6 +15,7 @@ public class SeatManager {
         seats.add(s);
         saveseats();
     }
+
     public ArrayList<Seat> getseatsusingshowtimeid(String Seatid){
         ArrayList<Seat> result = new ArrayList<>();
         for (Seat s : seats){

@@ -1,9 +1,9 @@
 package Seat;
 
-import java.io.File;
-import java.io.FileWriter;
+import Database.DBConnection;
+
+import java.sql.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class SeatManager {
     private ArrayList<Seat> seats = new ArrayList<>();
@@ -37,22 +37,48 @@ public class SeatManager {
     }
 
     public void loadSeats() {
-        try (Scanner scanner = new Scanner(new File("seats.txt"))) {
-            while (scanner.hasNextLine()) {
-                String[] data = scanner.nextLine().split(",");
-                if (data.length == 3) {
-                    seats.add(new Seat(data[0],Boolean.parseBoolean(data[1])));
+        seats.clear();
+        try (Connection con = DBConnection.getConnection()) {
+            String q = "SELECT seat_id, screen_id, seat_label FROM dbo.seat";
+            try (PreparedStatement ps = con.prepareStatement(q);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("seat_id");
+                    String screenId = rs.getString("screen_id");
+                    String label = rs.getString("seat_label");
+                    // represent seatid as screenId + ":" + label
+                    Seat s = new Seat(screenId + ":" + label, false);
+                    seats.add(s);
                 }
             }
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
     }
 
     public void saveseats() {
-        try (FileWriter writer = new FileWriter("seats.txt")) {
-            for (Seat s : seats) {
-                writer.write(s.getSeatid() + "," + "," + s.isIsbooked() + "\n");
+        // For simplicity keep seats table authoritative; insert any new seats from in-memory list
+        try (Connection con = DBConnection.getConnection()) {
+            String select = "SELECT seat_id FROM dbo.seat WHERE screen_id = ? AND seat_label = ?";
+            String insert = "INSERT INTO dbo.seat (screen_id, seat_label) VALUES (?, ?)";
+            try (PreparedStatement psSelect = con.prepareStatement(select);
+                 PreparedStatement psInsert = con.prepareStatement(insert)) {
+                for (Seat s : seats) {
+                    String[] parts = s.getSeatid().split(":", 2);
+                    if (parts.length != 2) continue;
+                    String screenId = parts[0];
+                    String label = parts[1];
+
+                    psSelect.setString(1, screenId);
+                    psSelect.setString(2, label);
+                    try (ResultSet rs = psSelect.executeQuery()) {
+                        if (!rs.next()) {
+                            psInsert.setString(1, screenId);
+                            psInsert.setString(2, label);
+                            psInsert.executeUpdate();
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

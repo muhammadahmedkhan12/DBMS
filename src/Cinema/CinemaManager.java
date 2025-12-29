@@ -1,10 +1,15 @@
 package Cinema;
 
+import Database.DBConnection;
 import Movie.Movie;
 import Movie.MovieManager;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -100,85 +105,109 @@ public class CinemaManager {
         return cinemas;
     }
 
+    // java
     public void loadcinemas() {
-        try {
-            Scanner scanner = new Scanner(new File("cinemas.txt"));
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine().trim();
-                if (line.isEmpty()) {
-                    continue;
-                }
+        cinemas.clear();
+        try (Connection con = DBConnection.getConnection()) {
+            String cinemaQuery = "SELECT cinema_id, name FROM cinema";
+            try (PreparedStatement psCinema = con.prepareStatement(cinemaQuery);
+                 ResultSet rsCinema = psCinema.executeQuery()) {
 
-                String[] data = line.split(",");
+                while (rsCinema.next()) {
+                    String cinemaId = rsCinema.getString("cinema_id");
+                    String cinemaName = rsCinema.getString("name");
+                    Cinema cinema = new Cinema(cinemaId, cinemaName);
 
-                String cinemaId = data[0];
-                String cinemaName = data[1];
-                Cinema cinema = new Cinema(cinemaId, cinemaName);
+                    String screenQuery = "SELECT screen_id, screen_type, number_of_seats FROM screen WHERE cinema_id = ?";
+                    try (PreparedStatement psScreen = con.prepareStatement(screenQuery)) {
+                        psScreen.setString(1, cinemaId);
+                        try (ResultSet rsScreen = psScreen.executeQuery()) {
+                            while (rsScreen.next()) {
+                                String screenId = rsScreen.getString("screen_id");
+                                String screenType = rsScreen.getString("screen_type");
+                                int numberOfSeats = rsScreen.getInt("number_of_seats");
 
-                int i = 2;
-                Screen.resetScreenNumber();
-                while (i + 2 < data.length) {
-                    String screenId = data[i];
-                    String screenType = data[i + 1];
-                    int numberOfSeats = Integer.parseInt(data[i + 2]);
-                    i += 3;
+                                Screen screen = new Screen(screenId, screenType, numberOfSeats);
 
-                    Screen screen = new Screen(screenId, screenType, numberOfSeats);
+                                String smQuery = "SELECT movie_id, showtime FROM shows WHERE screen_id = ? ORDER BY id";
+                                try (PreparedStatement psSM = con.prepareStatement(smQuery)) {
+                                    psSM.setString(1, screenId);
+                                    try (ResultSet rsSM = psSM.executeQuery()) {
+                                        while (rsSM.next()) {
+                                            int movieId = rsSM.getInt("movie_id");
+                                            String showtime = rsSM.getString("showtime");
+                                            Movie movie = MovieManager.getManager().getmoviebyid(movieId);
+                                            if (movie != null) {
+                                                screen.addMovie(movie, showtime);
+                                            }
+                                        }
+                                    }
+                                }
 
-                    while (i + 1 < data.length && !data[i].startsWith("s") && !data[i].startsWith("S")) {
-                        String movieIdStr = data[i];
-                        String showtime = data[i + 1];
-                        int movieId;
-                        try {
-                            movieId = Integer.parseInt(movieIdStr);
-                        } catch (Exception ex) {
-                            break;
+                                cinema.addScreen(screen);
+                            }
                         }
-
-                        Movie movie = MovieManager.getManager().getmoviebyid(movieId);
-
-                        if (movie != null) {
-                            screen.addMovie(movie, showtime);
-                        }
-                        i += 2;
                     }
 
-                    cinema.addScreen(screen);
+                    cinemas.add(cinema);
                 }
-
-                cinemas.add(cinema);
             }
-
-            scanner.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public void savecinemas() {
-        try {
-            FileWriter writer = new FileWriter("cinemas.txt");
-            for (int i = 0; i < cinemas.size(); i++) {
-                Cinema cinema = cinemas.get(i);
-                writer.write(cinema.getCinemaid() + "," + cinema.getName());
+        try (Connection con = DBConnection.getConnection()) {
+            con.setAutoCommit(false);
+            try (Statement stmt = con.createStatement()) {
+                // wipe previous data (simpler approach). Adjust if you want upserts instead.
+                stmt.executeUpdate("DELETE FROM shows");
+                stmt.executeUpdate("DELETE FROM screen");
+                stmt.executeUpdate("DELETE FROM cinema");
+            }
 
-                ArrayList<Screen> screens = cinema.getScreens();
-                for (int j = 0; j < screens.size(); j++) {
-                    Screen screen = screens.get(j);
-                    writer.write("," + screen.getScreenid() + "," + screen.getScreentype() + "," + screen.getNumberOfSeats());
+            String insertCinema = "INSERT INTO cinema (cinema_id, name) VALUES (?, ?)";
+            String insertScreen = "INSERT INTO screen (screen_id, cinema_id, screen_type, number_of_seats) VALUES (?, ?, ?, ?)";
+            String insertScreenMovie = "INSERT INTO shows (screen_id, movie_id, showtime) VALUES (?, ?, ?)";
 
-                    ArrayList<Movie> movies = screen.getMovies();
-                    ArrayList<String> showtimes = screen.getShowtimes();
+            try (PreparedStatement psCinema = con.prepareStatement(insertCinema);
+                 PreparedStatement psScreen = con.prepareStatement(insertScreen);
+                 PreparedStatement psSM = con.prepareStatement(insertScreenMovie)) {
 
-                    for (int k = 0; k < movies.size(); k++) {
-                        writer.write("," + movies.get(k).getMovieid() + "," + showtimes.get(k));
+                for (Cinema cinema : cinemas) {
+                    psCinema.setString(1, cinema.getCinemaid());
+                    psCinema.setString(2, cinema.getName());
+                    psCinema.executeUpdate();
+
+                    for (Screen screen : cinema.getScreens()) {
+                        psScreen.setString(1, screen.getScreenid());
+                        psScreen.setString(2, cinema.getCinemaid());
+                        psScreen.setString(3, screen.getScreentype());
+                        psScreen.setInt(4, screen.getNumberOfSeats());
+                        psScreen.executeUpdate();
+
+                        ArrayList<Movie> movies = screen.getMovies();
+                        ArrayList<String> showtimes = screen.getShowtimes();
+                        for (int k = 0; k < movies.size(); k++) {
+                            psSM.setString(1, screen.getScreenid());
+                            psSM.setInt(2, movies.get(k).getMovieid());
+                            psSM.setString(3, showtimes.get(k));
+                            psSM.executeUpdate();
+                        }
                     }
                 }
-                writer.write("\n");
+
+                con.commit();
+            } catch (Exception ex) {
+                con.rollback();
+                throw ex;
+            } finally {
+                con.setAutoCommit(true);
             }
-            writer.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 }

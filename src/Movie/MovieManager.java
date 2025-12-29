@@ -6,6 +6,10 @@ import Cinema.Cinema;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -72,36 +76,51 @@ public class MovieManager {
     public ArrayList<Movie> getMovies() {
         return movies;
     }
-    public void loadmovies(){
-        try {
-            Scanner scanner = new Scanner(new File("movies.txt"));
-            int maxId = 0;
-            while (scanner.hasNextLine()){
-                String[] data = scanner.nextLine().split(",");
-                if (data.length==3){
-                    int id = Integer.parseInt(data[0]);
-                    movies.add(new Movie(id, data[1], data[2]));
+    public void loadmovies() {
+        movies.clear();
+        int maxId = 0;
+        try (Connection con = Database.DBConnection.getConnection()) {
+            String sql = "SELECT movie_id, moviename, rating FROM dbo.movie ORDER BY movie_id";
+            try (PreparedStatement ps = con.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("movie_id");
+                    String name = rs.getString("moviename");
+                    String rating = rs.getString("rating");
+                    movies.add(new Movie(id, name, rating));
                     if (id > maxId) maxId = id;
                 }
             }
             Movie.resetNextMovieId(maxId + 1);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            // optionally fall back to file loading or rethrow
         }
     }
 
     public void savemovies() {
-        try {
-            FileWriter writer = new FileWriter("movies.txt");
-            for(Movie m : movies){
-                writer.write(m.getMovieid() + "," + m.getMoviename() + "," + m.getRating() + "\n");
+        try (Connection con = Database.DBConnection.getConnection()) {
+            con.setAutoCommit(false);
+            try (Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("DELETE FROM dbo.movie");
             }
-            writer.close();
-        }
-        catch (Exception e){
-            throw new RuntimeException();
+
+            String insert = "INSERT INTO dbo.movie (movie_id, moviename, rating) VALUES (?, ?, ?)";
+            try (PreparedStatement ps = con.prepareStatement(insert)) {
+                for (Movie m : movies) {
+                    ps.setInt(1, m.getMovieid());
+                    ps.setString(2, m.getMoviename());
+                    ps.setString(3, m.getRating());
+                    ps.executeUpdate();
+                }
+            }
+            con.commit();
+            con.setAutoCommit(true);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
     public Movie getmoviebyid(int movieid) {
         for (Movie movie : movies) {
             if (movie.getMovieid() == movieid) {

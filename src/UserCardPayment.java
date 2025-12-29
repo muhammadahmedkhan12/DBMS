@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
-import java.io.*;
+
+import Ticket.TicketManager;
 
 public class UserCardPayment extends JFrame {
     private final String username, movieName, cinemaInfo, seat;
@@ -156,11 +157,39 @@ public class UserCardPayment extends JFrame {
     }
 
     private void saveTicket() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("tickets.txt", true))) {
-            bw.write(username + "," + movieName + "," + cinemaInfo + "," + seat + ",card");
-            bw.newLine();
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Error saving ticket.");
+        try {
+            // parse cinemaInfo to extract cinemaId and screenId
+            String cinemaName = cinemaInfo;
+            String screenId = null;
+            if (cinemaInfo.contains("|")) {
+                String[] parts = cinemaInfo.split("\\|", 2);
+                cinemaName = parts[0].trim();
+                String screenPart = parts[1].trim();
+                if (screenPart.contains("S")) {
+                    int idx = screenPart.indexOf('S');
+                    int end = screenPart.indexOf(' ', idx);
+                    if (end == -1) end = screenPart.length();
+                    screenId = screenPart.substring(idx, end).trim();
+                }
+            }
+
+            // find cinema id by name
+            String cinemaId = null;
+            Cinema.CinemaManager cm = Cinema.CinemaManager.getCinemaManager();
+            for (Cinema.Cinema c : cm.getCinemas()) {
+                if (c.getName().equalsIgnoreCase(cinemaName) || c.getCinemaid().equals(cinemaName)) {
+                    cinemaId = c.getCinemaid();
+                    break;
+                }
+            }
+
+            TicketManager tm = new TicketManager();
+            int ticketId = tm.reserveSeat(username, null, cinemaId, screenId == null ? "S1" : screenId, seat, "unknown", "card", null);
+            if (ticketId <= 0) {
+                JOptionPane.showMessageDialog(this, "Seat is already booked. Please choose another seat.");
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error saving ticket: " + ex.getMessage());
         }
     }
 

@@ -177,22 +177,47 @@ public class UserCinemaSelection extends JFrame {
     }
 
     private void loadMovies() {
-        try (BufferedReader br = new BufferedReader(new FileReader("movies.txt"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] p = line.split(",", 3);
-                if (p.length == 3) {
-                    movieComboBox.addItem(p[1]);
-                    movieNames.add(p[1]);
-                    movieIds.add(p[0]);
-                    movieRatings.add(p[2]);
-                }
-            }
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Error reading movies.txt");
+        movieNames.clear();
+        movieIds.clear();
+        movieRatings.clear();
+        movieComboBox.removeAllItems();
+
+        Movie.MovieManager mm = Movie.MovieManager.getManager();
+        for (Movie.Movie m : mm.getMovies()) {
+            movieComboBox.addItem(m.getMoviename());
+            movieNames.add(m.getMoviename());
+            movieIds.add(String.valueOf(m.getMovieid()));
+            movieRatings.add(m.getRating());
         }
         movieComboBox.setSelectedItem(initialMovie);
         updateCinemaList();
+    }
+
+    private void updateCinemaList() {
+        cinemaListModel.clear();
+        String movieName = (String) movieComboBox.getSelectedItem();
+        if (movieName == null) return;
+        Movie.Movie selected = null;
+        for (Movie.Movie m : Movie.MovieManager.getManager().getMovies()) {
+            if (m.getMoviename().equals(movieName)) { selected = m; break; }
+        }
+        if (selected == null) { cinemaListModel.addElement("No cinemas found for this movie."); return; }
+
+        boolean found = false;
+        Cinema.CinemaManager cm = Cinema.CinemaManager.getCinemaManager();
+        for (Cinema.Cinema c : cm.getCinemas()) {
+            for (Cinema.Screen s : c.getScreens()) {
+                for (int i = 0; i < s.getMovies().size(); i++) {
+                    if (s.getMovies().get(i).getMovieid() == selected.getMovieid()) {
+                        String info = c.getName() + " | Screen " + s.getScreenid() + " (" + s.getScreentype() + "), "
+                                + s.getNumberOfSeats() + " seats @ " + s.getShowtimes().get(i);
+                        cinemaListModel.addElement(info);
+                        found = true;
+                    }
+                }
+            }
+        }
+        if (!found) cinemaListModel.addElement("No cinemas found for this movie.");
     }
 
     private String getMovieIdByName(String name) {
@@ -207,53 +232,7 @@ public class UserCinemaSelection extends JFrame {
         return "N/A";
     }
 
-    private void updateCinemaList() {
-        cinemaListModel.clear();
-        String movieName = (String) movieComboBox.getSelectedItem();
-        if (movieName == null) return;
 
-        String targetMovieId = getMovieIdByName(movieName);
-        ratingLabel.setText("Rating: " + getRatingByMovieId(targetMovieId));
-        boolean found = false;
-
-        try (BufferedReader br = new BufferedReader(new FileReader("cinemas.txt"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] d = line.split(",");
-                if (d.length < 5) continue;
-
-                String cinemaName = d[1];
-                int i = 2;
-
-                while (i + 2 < d.length) {
-                    String screenId   = d[i];
-                    String screenType = d[i + 1];
-                    int seatCount;
-
-                    try { seatCount = Integer.parseInt(d[i + 2]); }
-                    catch (NumberFormatException e) { break; }
-
-                    i += 3;
-
-                    while (i + 1 < d.length && !d[i].toLowerCase().startsWith("s")) {
-                        String movieId  = d[i];
-                        String showtime = d[i + 1];
-                        i += 2;
-
-                        if (movieId.equals(targetMovieId)) {
-                            String info = cinemaName + " | Screen " + screenId + " (" + screenType + "), "
-                                    + seatCount + " seats @ " + showtime;
-                            cinemaListModel.addElement(info);
-                            found = true;
-                        }
-                    }
-                }
-            }
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Error reading cinemas.txt");
-        }
-        if (!found) cinemaListModel.addElement("No cinemas found for this movie.");
-    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new UserCinemaSelection("testuser", "— choose movie —").setVisible(true));

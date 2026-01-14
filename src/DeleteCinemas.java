@@ -1,8 +1,12 @@
+import Cinema.Cinema;
 import Cinema.CinemaManager;
+import Database.DBConnection;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 
 public class DeleteCinemas extends JFrame {
     private JTextField cinemaidtextfield;
@@ -11,7 +15,7 @@ public class DeleteCinemas extends JFrame {
     private JLabel cinemaidlabel;
     private JButton backButton;
 
-    CinemaManager manager = new CinemaManager();
+    CinemaManager manager = CinemaManager.getCinemaManager();
 
     public DeleteCinemas() {
         setTitle("Delete Cinema");
@@ -19,35 +23,47 @@ public class DeleteCinemas extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(500, 300);
         setLocationRelativeTo(null);
-        setVisible(true);
 
+        // Delete cinema action
         DeleteCinema.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String cinemaId = cinemaidtextfield.getText();
+                String cinemaId = cinemaidtextfield.getText().trim();
 
                 if (cinemaId.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "Please enter a Cinema ID.");
+                    JOptionPane.showMessageDialog(DeleteCinemas.this, "Please enter a Cinema ID.");
                     return;
                 }
 
                 boolean found = false;
-                for (int i = 0; i < manager.getCinemas().size(); i++) {
-                    if (manager.getCinemas().get(i).getCinemaid().equals(cinemaId)) {
-                        found = true;
-                        break;
+
+                try (Connection con = DBConnection.getConnection()) {
+                    String query = "DELETE FROM Cinemas WHERE CinemaID = ?";
+                    try (PreparedStatement stmt = con.prepareStatement(query)) {
+                        stmt.setString(1, cinemaId);
+                        int rows = stmt.executeUpdate();
+                        if (rows > 0) {
+                            found = true;
+
+                            // Remove from in-memory list
+                            manager.getCinemas().removeIf(c -> c.getCinemaid().equals(cinemaId));
+                        }
                     }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(DeleteCinemas.this, "Error deleting cinema from database.");
+                    return;
                 }
 
                 if (found) {
-                    manager.deletecinema(cinemaId);
-                    JOptionPane.showMessageDialog(null, "Cinema deleted successfully.");
+                    JOptionPane.showMessageDialog(DeleteCinemas.this, "Cinema deleted successfully.");
                 } else {
-                    JOptionPane.showMessageDialog(null, "Cinema ID not found.");
+                    JOptionPane.showMessageDialog(DeleteCinemas.this, "Cinema ID not found in DB.");
                 }
             }
         });
 
+        // Back button action
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -55,9 +71,11 @@ public class DeleteCinemas extends JFrame {
                 dispose();
             }
         });
+
+        setVisible(true);
     }
 
     public static void main(String[] args) {
-        new DeleteCinemas();
+        SwingUtilities.invokeLater(DeleteCinemas::new);
     }
 }

@@ -10,9 +10,12 @@ import Movie.Movie;
 import Cinema.CinemaManager;
 import Cinema.Cinema;
 import Cinema.Screen;
+import Cinema.Show;
+import Cinema.ShowManager;
+import Cinema.ScreenManager;
 import java.util.ArrayList;
 
-public class AdminMain extends JFrame{
+public class AdminMain extends JFrame {
     private JPanel MyPanel;
     private JTable movieTable;
     private JScrollPane tableScrollPane;
@@ -29,7 +32,6 @@ public class AdminMain extends JFrame{
     private JButton DeleteScreenButton;
     private JButton backButton;
 
-    // unified preferred width for small/back buttons
     private static final int BUTTON_PREF_WIDTH = 140;
 
     public AdminMain() {
@@ -39,7 +41,6 @@ public class AdminMain extends JFrame{
         setSize(1300, 900);
         setLocationRelativeTo(null);
 
-        // constrain central content width so table/buttons do not stretch full window
         final int INNER_MAX_WIDTH = 1000;
 
         tableModel = new DefaultTableModel(new Object[]{"Movie ID", "Name", "Rating", "Add Movie", "Edit Movie"}, 0) {
@@ -50,7 +51,6 @@ public class AdminMain extends JFrame{
         movieTable = new JTable(tableModel);
         movieTable.setRowHeight(30);
         tableScrollPane = new JScrollPane(movieTable);
-        // constrain table scroll pane size so it doesn't expand full width
         tableScrollPane.setPreferredSize(new Dimension(INNER_MAX_WIDTH, 360));
         tableScrollPane.setMaximumSize(new Dimension(INNER_MAX_WIDTH, Integer.MAX_VALUE));
         MyPanel.setLayout(new BorderLayout());
@@ -66,14 +66,13 @@ public class AdminMain extends JFrame{
         movieTable.getColumn("Edit Movie").setCellRenderer(new ButtonRenderer());
         movieTable.getColumn("Edit Movie").setCellEditor(new ButtonEditor(new JCheckBox(), "edit"));
 
-        JPanel controlsPanel = new JPanel(new BorderLayout()); ////
+        JPanel controlsPanel = new JPanel(new BorderLayout());
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10)); // center buttons
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
 
-        JPanel backPanel = new JPanel(new BorderLayout()); ////
+        JPanel backPanel = new JPanel(new BorderLayout());
         backButton = new JButton("Back");
-        // make back button a bit narrower and keep it centered
         backButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height));
         backButton.setHorizontalAlignment(SwingConstants.CENTER);
         backPanel.add(backButton, BorderLayout.CENTER);
@@ -97,17 +96,14 @@ public class AdminMain extends JFrame{
         buttonPanel.add(AddScreenButton);
         buttonPanel.add(DeleteScreenButton);
 
-        // stack the main horizontal button row and the back button (Back on the next line)
         JPanel outerButtonsPanel = new JPanel();
         outerButtonsPanel.setOpaque(false);
         outerButtonsPanel.setLayout(new BoxLayout(outerButtonsPanel, BoxLayout.Y_AXIS));
-        // center the horizontal button row inside a GridBagLayout wrapper so it stays centered
         JPanel rowWrapper = new JPanel(new GridBagLayout());
         rowWrapper.setOpaque(false);
         rowWrapper.add(buttonPanel);
         outerButtonsPanel.add(rowWrapper);
-        outerButtonsPanel.add(Box.createVerticalStrut(8)); // small gap between main row and Back
-        // add the backPanel centered on its own line
+        outerButtonsPanel.add(Box.createVerticalStrut(8));
         JPanel backRowWrapper = new JPanel(new GridBagLayout());
         backRowWrapper.setOpaque(false);
         backRowWrapper.add(backPanel);
@@ -182,10 +178,7 @@ public class AdminMain extends JFrame{
             }
         });
 
-        // apply theme after components are created but before showing the frame
         applyTheme();
-
-        // show last
         setVisible(true);
     }
 
@@ -201,6 +194,7 @@ public class AdminMain extends JFrame{
         public ButtonRenderer() {
             setOpaque(true);
         }
+
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setText((value == null) ? "" : value.toString());
             return this;
@@ -243,7 +237,7 @@ public class AdminMain extends JFrame{
             setLocationRelativeTo(AdminMain.this);
             setLayout(new GridLayout(7, 2));
 
-            Movie movie = MovieManager.getManager().getmoviebyid(movieId);
+            Movie movie = MovieManager.getManager().getMovieById(movieId);
 
             add(new JLabel("Movie ID:"));
             JTextField movieIdField = new JTextField(String.valueOf(movie.getMovieid()));
@@ -271,24 +265,34 @@ public class AdminMain extends JFrame{
             JComboBox<String> screenCombo = new JComboBox<>();
             if (cinemaCombo.getItemCount() > 0) {
                 Cinema selectedCinema = CinemaManager.getCinemaManager().getCinemas().get(cinemaCombo.getSelectedIndex());
+
+                // ✅ load screens from DB for this cinema
+                ScreenManager.loadScreens(selectedCinema);
+
+                screenCombo.removeAllItems();
                 for (Screen s : selectedCinema.getScreens()) {
-                    screenCombo.addItem(s.getScreenid());
+                    screenCombo.addItem(s.getScreenId());
                 }
             }
+
             add(screenCombo);
 
-            cinemaCombo.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
+            cinemaCombo.addActionListener(e -> {
+                int idx = cinemaCombo.getSelectedIndex();
+                if (idx >= 0) {
+                    Cinema selectedCinema = CinemaManager.getCinemaManager().getCinemas().get(idx);
+
+                    // load screens from DB
+                    ScreenManager.loadScreens(selectedCinema);
+
+                    // repopulate screenCombo
                     screenCombo.removeAllItems();
-                    int idx = cinemaCombo.getSelectedIndex();
-                    if (idx >= 0) {
-                        Cinema selectedCinema = CinemaManager.getCinemaManager().getCinemas().get(idx);
-                        for (Screen s : selectedCinema.getScreens()) {
-                            screenCombo.addItem(s.getScreenid());
-                        }
+                    for (Screen s : selectedCinema.getScreens()) {
+                        screenCombo.addItem(s.getScreenId());
                     }
                 }
             });
+
 
             add(new JLabel("Showtime:"));
             JTextField showtimeField = new JTextField();
@@ -306,12 +310,11 @@ public class AdminMain extends JFrame{
                     }
                     Cinema cinema = CinemaManager.getCinemaManager().getCinemas().get(cinemaIdx);
                     Screen screen = cinema.getScreens().get(screenIdx);
-                    CinemaManager.getCinemaManager().addmovietocinema(cinema, screen, movie, showtime);
+                    CinemaManager.getCinemaManager().addMovieToCinema(cinema, screen, movie, showtime);
                     JOptionPane.showMessageDialog(AddMovieToScreenFrame.this, "Movie added to screen.");
                     dispose();
                 }
             });
-            // reduce width of dialog buttons
             addButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height));
             add(addButton);
 
@@ -331,7 +334,7 @@ public class AdminMain extends JFrame{
             setLocationRelativeTo(AdminMain.this);
             setLayout(new GridLayout(5, 2));
 
-            Movie movie = MovieManager.getManager().getmoviebyid(movieId);
+            Movie movie = MovieManager.getManager().getMovieById(movieId);
 
             add(new JLabel("Movie ID:"));
             JTextField movieIdField = new JTextField(String.valueOf(movie.getMovieid()));
@@ -357,50 +360,51 @@ public class AdminMain extends JFrame{
             add(newRatingField);
 
             JButton saveButton = new JButton("Save");
-            saveButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    String newName = newNameField.getText().trim();
-                    String newRating = newRatingField.getText().trim();
-                    if (newName.isEmpty() || newRating.isEmpty()) {
-                        JOptionPane.showMessageDialog(EditMovieFrame.this, "Please enter new name and rating.");
-                        return;
-                    }
-                    boolean success = MovieManager.getManager().editmovies(movieId, newName, newRating);
-                    if (success) {
-                        for (int i = 0; i < CinemaManager.getCinemaManager().getCinemas().size(); i++) {
-                            Cinema cinema = CinemaManager.getCinemaManager().getCinemas().get(i);
-                            for (int j = 0; j < cinema.getScreens().size(); j++) {
-                                Screen screen = cinema.getScreens().get(j);
-                                for (int k = 0; k < screen.getMovies().size(); k++) {
-                                    Movie m = screen.getMovies().get(k);
-                                    if (m.getMovieid() == movieId) {
-                                        m.setMoviename(newName);
-                                        m.setRating(newRating);
-                                    }
-                                }
+            saveButton.addActionListener(e -> {
+                String newName = newNameField.getText().trim();
+                String newRating = newRatingField.getText().trim();
+
+                if (newName.isEmpty() || newRating.isEmpty()) {
+                    JOptionPane.showMessageDialog(EditMovieFrame.this, "Please enter new name and rating.");
+                    return;
+                }
+
+                boolean success = MovieManager.getManager().editMovie(movieId, newName, newRating);
+                if (!success) {
+                    JOptionPane.showMessageDialog(EditMovieFrame.this, "Movie id not found.");
+                    return;
+                }
+
+                for (Cinema cinema : CinemaManager.getCinemaManager().getCinemas()) {
+                    for (Screen screen : cinema.getScreens()) {
+                        for (Show show : screen.getShows()) {
+                            if (show.getMovie().getMovieid() == movieId) {
+                                show.getMovie().setMoviename(newName);
+                                show.getMovie().setRating(newRating);
                             }
                         }
-                        CinemaManager.getCinemaManager().savecinemas();
-                        JOptionPane.showMessageDialog(EditMovieFrame.this, "Movie updated successfully.");
-                        loadMoviesToTable();
-                        dispose();
-                    } else {
-                        JOptionPane.showMessageDialog(EditMovieFrame.this, "Movie id not found.");
+                        ShowManager.saveShows(screen);
                     }
                 }
+
+                JOptionPane.showMessageDialog(EditMovieFrame.this, "Movie updated successfully.");
+                loadMoviesToTable();
+                dispose();
             });
+
             saveButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, saveButton.getPreferredSize().height));
             add(saveButton);
 
             JButton cancelButton = new JButton("Cancel");
             cancelButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height));
-            cancelButton.addActionListener(e -> dispose());
+            cancelButton.addActionListener(ev -> dispose());
             add(cancelButton);
 
             setVisible(true);
         }
     }
 
+    // ✅ FIXED: Moved AddScreenFrame outside of EditMovieFrame
     class AddScreenFrame extends JFrame {
         public AddScreenFrame() {
             setTitle("Add Screen");
@@ -424,34 +428,37 @@ public class AdminMain extends JFrame{
             add(cinemaCombo);
 
             JButton addButton = new JButton("Add Screen");
-            addButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    String screenType = screenTypeField.getText().trim();
-                    String seatsText = seatsField.getText().trim();
-                    int cinemaIdx = cinemaCombo.getSelectedIndex();
-                    if (screenType.isEmpty() || seatsText.isEmpty() || cinemaIdx < 0) {
-                        JOptionPane.showMessageDialog(AddScreenFrame.this, "Please fill all fields.");
-                        return;
-                    }
-                    int numberOfSeats;
-                    try {
-                        numberOfSeats = Integer.parseInt(seatsText);
-                        if (numberOfSeats <= 0) throw new NumberFormatException();
-                    } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(AddScreenFrame.this, "Please enter a valid positive number for seats.");
-                        return;
-                    }
-                    Cinema cinema = CinemaManager.getCinemaManager().getCinemas().get(cinemaIdx);
-                    if (cinema.getScreens().isEmpty()) {
-                        Screen.resetScreenNumber();
-                    }
-                    cinema.addScreen(new Screen(screenType, numberOfSeats));
-                    CinemaManager.getCinemaManager().savecinemas();
-                    JOptionPane.showMessageDialog(AddScreenFrame.this, "Screen added to cinema.");
-                    dispose();
+            addButton.addActionListener(e -> {
+                String screenType = screenTypeField.getText().trim();
+                String seatsText = seatsField.getText().trim();
+                int cinemaIdx = cinemaCombo.getSelectedIndex();
+                if (screenType.isEmpty() || seatsText.isEmpty() || cinemaIdx < 0) {
+                    JOptionPane.showMessageDialog(this, "Please fill all fields.");
+                    return;
                 }
+
+                int numberOfSeats;
+                try {
+                    numberOfSeats = Integer.parseInt(seatsText);
+                    if (numberOfSeats <= 0) throw new NumberFormatException();
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Please enter a valid positive number for seats.");
+                    return;
+                }
+
+                Cinema cinema = CinemaManager.getCinemaManager().getCinemas().get(cinemaIdx);
+
+                String screenId = Screen.getNextScreenId();
+
+                Screen screen = new Screen(screenId, cinema.getCinemaid(), screenType, numberOfSeats);
+                cinema.addScreen(screen);
+
+                // ✅ Save only the screen using ScreenManager
+                ScreenManager.saveScreen(screen);
+
+                JOptionPane.showMessageDialog(this, "Screen added to cinema: " + cinema.getName());
+                dispose();
             });
-            // make dialog buttons narrower
             addButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height));
             add(addButton);
 
@@ -469,6 +476,7 @@ public class AdminMain extends JFrame{
         }
     }
 
+
     class DeleteScreenFrame extends JFrame {
         public DeleteScreenFrame() {
             setTitle("Delete Screen");
@@ -480,25 +488,27 @@ public class AdminMain extends JFrame{
             mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
             for (Cinema cinema : CinemaManager.getCinemaManager().getCinemas()) {
-                JPanel cinemaPanel = new JPanel();
-                cinemaPanel.setLayout(new BorderLayout());
+                JPanel cinemaPanel = new JPanel(new BorderLayout());
                 cinemaPanel.add(new JLabel("Cinema: " + cinema.getName()), BorderLayout.NORTH);
 
-                JPanel screensPanel = new JPanel();
-                screensPanel.setLayout(new GridLayout(0, 2, 10, 5));
+                JPanel screensPanel = new JPanel(new GridLayout(0, 2, 10, 5));
                 for (Screen screen : cinema.getScreens()) {
-                    screensPanel.add(new JLabel("Screen: " + screen.getScreenid() + " (" + screen.getScreentype() + ")"));
+                    screensPanel.add(new JLabel("Screen: " + screen.getScreenId() + " (" + screen.getScreenType() + ")"));
+
                     JButton deleteBtn = new JButton("Delete");
-                    deleteBtn.addActionListener(new ActionListener() {
-                        public void actionPerformed(ActionEvent e) {
-                            cinema.getScreens().remove(screen);
-                            CinemaManager.getCinemaManager().savecinemas();
-                            JOptionPane.showMessageDialog(DeleteScreenFrame.this, "Screen deleted.");
-                            dispose();
-                        }
+                    deleteBtn.addActionListener(e -> {
+                        // ✅ Remove screen from DB using ScreenManager
+                        ScreenManager.deleteScreen(screen);
+
+                        // Remove from cinema object
+                        cinema.getScreens().remove(screen);
+
+                        JOptionPane.showMessageDialog(DeleteScreenFrame.this, "Screen deleted from cinema: " + cinema.getName());
+                        dispose();
                     });
                     screensPanel.add(deleteBtn);
                 }
+
                 cinemaPanel.add(screensPanel, BorderLayout.CENTER);
                 mainPanel.add(cinemaPanel);
             }
@@ -506,7 +516,6 @@ public class AdminMain extends JFrame{
             JScrollPane scrollPane = new JScrollPane(mainPanel);
             add(scrollPane, BorderLayout.CENTER);
 
-            // center bottom buttons and make them narrow
             JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
 
             JButton backButton = new JButton("Back");
@@ -524,7 +533,9 @@ public class AdminMain extends JFrame{
         }
     }
 
+
     class AddMovieOnlyFrame extends JFrame {
+
         public AddMovieOnlyFrame() {
             setTitle("Add New Movie");
             setSize(350, 200);
@@ -540,36 +551,46 @@ public class AdminMain extends JFrame{
             add(ratingField);
 
             JButton addButton = new JButton("Add Movie");
-            addButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    String movieName = movieNameField.getText().trim();
-                    String rating = ratingField.getText().trim();
-                    if (movieName.isEmpty() || rating.isEmpty()) {
-                        JOptionPane.showMessageDialog(AddMovieOnlyFrame.this, "Please fill all fields.");
-                        return;
-                    }
-                    Movie movie = new Movie(movieName, rating);
-                    boolean exists = false;
-                    for (Movie m : MovieManager.getManager().getMovies()) {
-                        if (m.getMoviename().equalsIgnoreCase(movieName)) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (exists) {
-                        JOptionPane.showMessageDialog(AddMovieOnlyFrame.this, "Movie name already exists.");
-                        return;
-                    }
-                    MovieManager.getManager().addmovie(movie);
-                    JOptionPane.showMessageDialog(AddMovieOnlyFrame.this, "Movie added to movies.txt with ID: " + movie.getMovieid());
-                    loadMoviesToTable();
-                    dispose();
+            addButton.addActionListener(e -> {
+
+                String movieName = movieNameField.getText().trim();
+                String rating = ratingField.getText().trim();
+
+                if (movieName.isEmpty() || rating.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please fill all fields.");
+                    return;
                 }
+
+                for (Movie m : MovieManager.getManager().getMovies()) {
+                    if (m.getMoviename().equalsIgnoreCase(movieName)) {
+                        JOptionPane.showMessageDialog(this, "Movie name already exists.");
+                        return;
+                    }
+                }
+
+                Movie movie = new Movie(movieName, rating);
+                int assignedId = movie.getMovieid();
+
+                MovieManager.getManager().addMovie(movie);
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Movie added successfully with ID: " + assignedId
+                );
+
+                loadMoviesToTable();
+                dispose();
             });
-            addButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height));
+
+            addButton.setPreferredSize(
+                    new Dimension(BUTTON_PREF_WIDTH, addButton.getPreferredSize().height)
+            );
             add(addButton);
+
             JButton cancelButton = new JButton("Cancel");
-            cancelButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height));
+            cancelButton.setPreferredSize(
+                    new Dimension(BUTTON_PREF_WIDTH, cancelButton.getPreferredSize().height)
+            );
             cancelButton.addActionListener(e -> dispose());
             add(cancelButton);
 
@@ -577,13 +598,12 @@ public class AdminMain extends JFrame{
         }
     }
 
-    // Theme helper: style header, buttons and table header
+
     private void applyTheme() {
         Color bg = new Color(45, 62, 80);
         Color fg = Color.WHITE;
         Color primary = new Color(0, 150, 136);
         Color danger = new Color(220, 80, 80);
-        // unified button color requested
         Color btnColor = new Color(30, 45, 60);
         Font headerFont = new Font("Segoe UI", Font.BOLD, 20);
         Font controlFont = new Font("Segoe UI", Font.PLAIN, 14);
@@ -593,7 +613,6 @@ public class AdminMain extends JFrame{
         MyPanel.setBackground(bg);
         MyPanel.setOpaque(true);
 
-        // Header (top-center)
         if (WelcomeLabel == null) {
             WelcomeLabel = new JLabel("Welcome, Admin");
         }
@@ -605,25 +624,13 @@ public class AdminMain extends JFrame{
         header.setOpaque(false);
         header.add(WelcomeLabel);
 
-        // If a header isn't already added at NORTH, add it
-        Component northComp = null;
-        LayoutManager lm = MyPanel.getLayout();
-        if (lm instanceof BorderLayout) {
-            // simple check: if there's a component at NORTH already, remove it and replace with our header
-            // (ensures our header is top)
-            MyPanel.add(header, BorderLayout.NORTH);
-        } else {
-            // ensure MyPanel uses BorderLayout so header/top placement works
-            MyPanel.setLayout(new BorderLayout());
-            MyPanel.add(header, BorderLayout.NORTH);
-        }
+        MyPanel.add(header, BorderLayout.NORTH);
 
-        // Style buttons
         java.util.List<JButton> primaryBtns = java.util.Arrays.asList(
                 NewAdminButton, EditMoviesbutton, Addnewmoviesbutton, editcinemabutton, Addnewcinema, AddScreenButton
         );
         java.util.List<JButton> dangerBtns = java.util.Arrays.asList(
-                Deletemoviebutton, deletecinemabutton, DeleteScreenButton /*, backButton removed here to avoid enforcing same size */
+                Deletemoviebutton, deletecinemabutton, DeleteScreenButton
         );
 
         java.util.function.Consumer<JButton> stylePrimary = b -> {
@@ -649,34 +656,23 @@ public class AdminMain extends JFrame{
             b.setMargin(new Insets(6, 12, 6, 12));
         };
 
-        // style backButton separately so it is smaller and centered
         if (backButton != null) {
             backButton.setFont(controlFont);
-
-            backButton.setForeground(fg);          // text color
-            backButton.setBackground(btnColor); // button background
-
+            backButton.setForeground(fg);
+            backButton.setBackground(btnColor);
             backButton.setOpaque(true);
             backButton.setFocusPainted(false);
-
             backButton.setHorizontalAlignment(SwingConstants.CENTER);
             backButton.setHorizontalTextPosition(SwingConstants.CENTER);
-
             backButton.setMargin(new Insets(6, 12, 6, 12));
-            backButton.setPreferredSize(
-                    new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height)
-            );
+            backButton.setPreferredSize(new Dimension(BUTTON_PREF_WIDTH, backButton.getPreferredSize().height));
             backButton.setContentAreaFilled(false);
             backButton.setOpaque(true);
-
         }
-
 
         for (JButton b : primaryBtns) stylePrimary.accept(b);
         for (JButton b : dangerBtns) styleDanger.accept(b);
-        // do not force backButton in dangerBtns loop to avoid overriding its specific size
 
-        // Style the table header for better contrast
         JTableHeader th = movieTable.getTableHeader();
         th.setBackground(new Color(30, 45, 60));
         th.setForeground(fg);
@@ -686,13 +682,10 @@ public class AdminMain extends JFrame{
         movieTable.setSelectionBackground(primary);
         movieTable.setSelectionForeground(Color.WHITE);
 
-        // Ensure controlsPanel backgrounds are matched (if present)
-        // The controls panel is the SOUTH component we added earlier; iterate children and set opaque/bg
         for (Component comp : MyPanel.getComponents()) {
             if (comp instanceof JPanel) {
                 comp.setBackground(bg);
                 comp.setForeground(fg);
-//                comp.setOpaque(true);
             }
         }
 

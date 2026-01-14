@@ -47,7 +47,7 @@ public class EditMovies extends JFrame {
                         JOptionPane.showMessageDialog(null, "Please enter new name and rating.");
                         return;
                     }
-                    boolean success = movieManager.editmovies(movieid, newmoviename, newmovierating);
+                    boolean success = movieManager.editMovie(movieid, newmoviename, newmovierating);
                     if (success) {
                         JOptionPane.showMessageDialog(null, "Movie updated successfully");
                         dispose();

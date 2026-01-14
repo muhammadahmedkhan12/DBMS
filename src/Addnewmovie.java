@@ -87,7 +87,7 @@ public class Addnewmovie extends JFrame {
                 }
 
                 Movie movie = new Movie(moviename, movierating);
-                manager.addmovie(movie);
+                manager.addMovie(movie);
                 JOptionPane.showMessageDialog(null, "Movie added to movies.txt with ID: " + movie.getMovieid());
                 dispose();
             }

@@ -26,7 +26,6 @@ public class AddnewCinema extends JFrame {
         setSize(500, 300);
         setLocationRelativeTo(null);
 
-        // apply visual theme/layout before attaching listeners
         applyTheme();
 
         addcinemabutton.addActionListener(new ActionListener() {

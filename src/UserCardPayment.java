@@ -1,27 +1,37 @@
 import javax.swing.*;
 import java.awt.*;
-
-import Ticket.TicketManager;
+import java.sql.*;
+import Database.DBConnection;
 
 public class UserCardPayment extends JFrame {
-    private final String username, movieName, cinemaInfo, seat;
 
-    public UserCardPayment(String username, String movieId, String movieName,
-                           String cinemaInfo, String seat) {
-        this.username   = username;
-        this.movieName  = movieName;
-        this.cinemaInfo = cinemaInfo;
-        this.seat       = seat;
+    private final String username;
+    private final String movieName;
+    private final String cinemaInfo;
+    private final String seat;
 
-        // themed layout
+    private final int movieId;
+
+
+    public UserCardPayment(
+            String username,
+            int movieId,
+            String movieName,
+            String cinemaName,
+            String seat
+    ) {
+        this.username = username;
+        this.movieId = movieId;
+        this.movieName = movieName;
+        this.cinemaInfo = cinemaName;
+        this.seat = seat;
+
+        // ================= WINDOW =================
         setTitle("Card Payment");
         setSize(1300, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        final int INNER_MAX_WIDTH = 450;
-        final int CONTROL_MAX_WIDTH = 350;
-        final int V_SPACE = 16;
         Color bg = new Color(45, 62, 80);
         Color fg = Color.WHITE;
         Color primary = new Color(0, 150, 136);
@@ -30,171 +40,134 @@ public class UserCardPayment extends JFrame {
         Font labelFont = new Font("Segoe UI", Font.PLAIN, 14);
         Font controlFont = new Font("Segoe UI", Font.PLAIN, 14);
 
-        // root
+        // ================= ROOT =================
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(bg);
-        root.setBorder(BorderFactory.createEmptyBorder(12,12,12,12));
+        root.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         setContentPane(root);
 
-        // header (top-center)
         JLabel header = new JLabel("Card Payment", SwingConstants.CENTER);
-        header.setForeground(fg);
         header.setFont(headerFont);
-        header.setBorder(BorderFactory.createEmptyBorder(V_SPACE, 0, V_SPACE/2, 0));
-        JPanel headerRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        headerRow.setOpaque(false);
-        headerRow.add(header);
-        root.add(headerRow, BorderLayout.NORTH);
+        header.setForeground(fg);
+        root.add(header, BorderLayout.NORTH);
 
-        // inner column (centered)
-        JPanel inner = new JPanel();
-        inner.setOpaque(false);
-        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
-        inner.setBorder(BorderFactory.createEmptyBorder(6, 12, 12, 12));
-        inner.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.setMaximumSize(new Dimension(INNER_MAX_WIDTH, Integer.MAX_VALUE));
+        // ================= CENTER =================
+        JPanel center = new JPanel();
+        center.setOpaque(false);
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
 
-        // Card Number
-        JLabel lblCard = new JLabel("Card Number:");
-        lblCard.setForeground(fg);
-        lblCard.setFont(labelFont);
-        lblCard.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.add(lblCard);
-        inner.add(Box.createVerticalStrut(6));
-        JTextField card = new JTextField();
-        card.setFont(controlFont);
-        card.setMaximumSize(new Dimension(CONTROL_MAX_WIDTH, card.getPreferredSize().height));
-        card.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.add(card);
-        inner.add(Box.createVerticalStrut(V_SPACE));
+        JTextField cardField = createField("Card Number", labelFont, controlFont, fg);
+        JTextField expField = createField("Expiry (MM/YY)", labelFont, controlFont, fg);
+        JTextField cvvField = createField("CVV", labelFont, controlFont, fg);
 
-        // Expiry
-        JLabel lblExp = new JLabel("Expiry (MM/YY):");
-        lblExp.setForeground(fg);
-        lblExp.setFont(labelFont);
-        lblExp.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.add(lblExp);
-        inner.add(Box.createVerticalStrut(6));
-        JTextField exp = new JTextField();
-        exp.setFont(controlFont);
-        exp.setMaximumSize(new Dimension(CONTROL_MAX_WIDTH, exp.getPreferredSize().height));
-        exp.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.add(exp);
-        inner.add(Box.createVerticalStrut(V_SPACE));
+        center.add(cardField);
+        center.add(expField);
+        center.add(cvvField);
 
-        // CVV
-        JLabel lblCvv = new JLabel("CVV:");
-        lblCvv.setForeground(fg);
-        lblCvv.setFont(labelFont);
-        lblCvv.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.add(lblCvv);
-        inner.add(Box.createVerticalStrut(6));
-        JTextField cvv = new JTextField();
-        cvv.setFont(controlFont);
-        cvv.setMaximumSize(new Dimension(CONTROL_MAX_WIDTH, cvv.getPreferredSize().height));
-        cvv.setAlignmentX(Component.CENTER_ALIGNMENT);
-        inner.add(cvv);
-        inner.add(Box.createVerticalStrut(V_SPACE + 6));
-        // extra offset to push the buttons further downward
-        final int BUTTON_OFFSET = 80;
-        inner.add(Box.createVerticalStrut(BUTTON_OFFSET));
+        root.add(center, BorderLayout.CENTER);
 
-        // buttons row (submit + back)
+        // ================= BUTTONS =================
         JButton submit = new JButton("Submit Payment");
         JButton backBtn = new JButton("Back");
-        java.util.function.Consumer<AbstractButton> styleBtn = b -> {
-            b.setFont(controlFont);
-            b.setForeground(Color.WHITE);
-            b.setOpaque(true);
-            b.setFocusPainted(false);
-            // increased top margin so text sits lower inside button
-            b.setMargin(new Insets(16, 16, 8, 16));
-            b.setMaximumSize(new Dimension(CONTROL_MAX_WIDTH/2 + 20, b.getPreferredSize().height));
-            b.setPreferredSize(new Dimension(CONTROL_MAX_WIDTH/2 + 20, b.getPreferredSize().height));
-            b.setHorizontalAlignment(SwingConstants.CENTER);
-            b.setHorizontalTextPosition(SwingConstants.CENTER);
-        };
-        styleBtn.accept(submit);
-        submit.setBackground(primary);
-        styleBtn.accept(backBtn);
-        backBtn.setBackground(new Color(220,80,80));
 
-        // increase vertical gap (vgap) to push the row downward
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 20));
+        submit.setBackground(primary);
+        submit.setForeground(Color.WHITE);
+
+        backBtn.setBackground(new Color(220, 80, 80));
+        backBtn.setForeground(Color.WHITE);
+
+        JPanel btnRow = new JPanel(new FlowLayout());
         btnRow.setOpaque(false);
         btnRow.add(submit);
         btnRow.add(backBtn);
-        inner.add(btnRow);
 
-        // center inner
-        JPanel centerWrapper = new JPanel(new GridBagLayout());
-        centerWrapper.setOpaque(false);
-        centerWrapper.add(inner, new GridBagConstraints());
-        root.add(centerWrapper, BorderLayout.CENTER);
+        root.add(btnRow, BorderLayout.SOUTH);
 
-        // listeners (preserve behavior)
+        // ================= ACTIONS =================
         submit.addActionListener(e -> {
-            if (card.getText().isBlank() || exp.getText().isBlank() || cvv.getText().isBlank()) {
-                JOptionPane.showMessageDialog(this, "Fill all card fields.");
+            if (cardField.getText().isBlank()
+                    || expField.getText().isBlank()
+                    || cvvField.getText().isBlank()) {
+                JOptionPane.showMessageDialog(this, "Fill all card details.");
                 return;
             }
-            saveTicket();
-            JOptionPane.showMessageDialog(this,
-                    "Payment Successful!\nMovie: " + movieName +
-                            "\n" + cinemaInfo + "\nSeat: " + seat);
-            dispose();
+
+            if (saveTicket()) {
+                JOptionPane.showMessageDialog(this,
+                        "Payment Successful!\n\nMovie: " + movieName +
+                                "\n" + cinemaInfo +
+                                "\nSeat: " + seat);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Seat already booked or error occurred.");
+            }
         });
 
         backBtn.addActionListener(e -> {
-            new UserPaymentSelection(username, null, movieName, cinemaInfo).setVisible(true);
+            new UserPaymentSelection(
+                    username,
+                    movieId,
+                    movieName,
+                    cinemaInfo // seat capacity already validated earlier
+            ).setVisible(true);
             dispose();
         });
-
-        // final styling
-        getContentPane().setBackground(bg);
-        revalidate();
-        repaint();
     }
 
-    private void saveTicket() {
-        try {
-            // parse cinemaInfo to extract cinemaId and screenId
-            String cinemaName = cinemaInfo;
-            String screenId = null;
-            if (cinemaInfo.contains("|")) {
-                String[] parts = cinemaInfo.split("\\|", 2);
-                cinemaName = parts[0].trim();
-                String screenPart = parts[1].trim();
-                if (screenPart.contains("S")) {
-                    int idx = screenPart.indexOf('S');
-                    int end = screenPart.indexOf(' ', idx);
-                    if (end == -1) end = screenPart.length();
-                    screenId = screenPart.substring(idx, end).trim();
-                }
-            }
+    // ================= DB SAVE =================
+    private boolean saveTicket() {
+        int seatNumber = Integer.parseInt(seat);
 
-            // find cinema id by name
-            String cinemaId = null;
-            Cinema.CinemaManager cm = Cinema.CinemaManager.getCinemaManager();
-            for (Cinema.Cinema c : cm.getCinemas()) {
-                if (c.getName().equalsIgnoreCase(cinemaName) || c.getCinemaid().equals(cinemaName)) {
-                    cinemaId = c.getCinemaid();
-                    break;
-                }
-            }
+        String sql = """
+                INSERT INTO Tickets
+                (Username, MovieID, ShowID, SeatNumber, PaymentMethod)
+                VALUES (?, ?, ?, ?, 'card')
+                """;
 
-            TicketManager tm = new TicketManager();
-            int ticketId = tm.reserveSeat(username, null, cinemaId, screenId == null ? "S1" : screenId, seat, "unknown", "card", null);
-            if (ticketId <= 0) {
-                JOptionPane.showMessageDialog(this, "Seat is already booked. Please choose another seat.");
-            }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error saving ticket: " + ex.getMessage());
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+            ps.setInt(2, movieId);
+            ps.setInt(3, showId);
+            ps.setInt(4, seatNumber);
+
+            ps.executeUpdate();
+            return true;
+
+        } catch (SQLIntegrityConstraintViolationException ex) {
+            return false;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
         }
     }
 
-    public static void main(String[] args) {
-        new UserCardPayment("user1", "M001", "Inception",
-                "Cinema 1 - 7:00 PM", "A5").setVisible(true);
+    // ================= HELPER =================
+    private JTextField createField(
+            String labelText,
+            Font labelFont,
+            Font fieldFont,
+            Color fg
+    ) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        JLabel label = new JLabel(labelText);
+        label.setForeground(fg);
+        label.setFont(labelFont);
+
+        JTextField field = new JTextField();
+        field.setFont(fieldFont);
+        field.setMaximumSize(new Dimension(350, 30));
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(field);
+        panel.add(Box.createVerticalStrut(15));
+
+        return field;
     }
 }

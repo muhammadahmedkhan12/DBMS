@@ -1,13 +1,13 @@
-// java
-/* leave existing package if any */
-
 import Database.DBConnection;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class AuthenticationServiceAdmin {
     public ArrayList<Admin> admins;
@@ -22,27 +22,29 @@ public class AuthenticationServiceAdmin {
         admins = new ArrayList<>();
     }
 
+
     public String login(String username , String password){
         loadAdmins();
-        for (Admin a : admins) {
-            if (a.getUsername().equals(username) && a.getPassword().equals(password)) {
-                LoggedInAdmin = a;
-                return "login successful";
+        String temporary = "";
+        for (int i = 0; i < admins.size(); i++) {
+            if (admins.get(i).getUsername().equals(username)&& admins.get(i).getPassword().equals(password)){
+                LoggedInAdmin = admins.get(i);
+                temporary = "login successfull";
+                break;
+            }
+            else {
+                temporary = "incorrect username and password";
             }
         }
-        return "incorrect username and password";
+        return temporary;
     }
-
     public String MakeNewAdmin(String username, String password) {
-        // ensure we operate on latest admins
-        loadAdmins();
-
         if (LoggedInAdmin == null || !LoggedInAdmin.getUsername().equals("mushtaq12")){
             return "Only mushtaq can make new admins";
         }
-
-        for (Admin existing : admins) {
-            if (existing.getUsername().equals(username)) {
+        String temp = "";
+        for (int i = 0; i < admins.size(); i++) {
+            if (admins.get(i).getUsername().equals(username)) {
                 return "Username already exists";
             }
         }
@@ -60,61 +62,54 @@ public class AuthenticationServiceAdmin {
             return "Username could not be less than 6";
         } else if (password.length() < 8) {
             return "password could not be less than 8";
-        } else if ((password.contains("@") || password.contains("#") || password.contains("$")) && hasNumber && hasCapital) {
-            // add new admin to in-memory list and persist
+        }
+        else if ((password.contains("@") || password.contains("#") || password.contains("$")) && hasNumber && hasCapital) {
+            admins.clear();
             admins.add(new Admin(username, password));
             saveAdmins();
             return "New Admin Made Successfully";
-        } else {
+        }
+        else {
             return "password did not meet conditions";
         }
     }
-
     public void loadAdmins(){
-        admins.clear(); // avoid duplicates on repeated calls
-        try (Connection con = DBConnection.getConnection()) {
-            String query = "SELECT username, password FROM admin";
-            try (PreparedStatement ps = con.prepareStatement(query);
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()){
-                    Admin a = new Admin(
-                            rs.getString("username"),
-                            rs.getString("password")
-                    );
-                    admins.add(a);
-                }
+        try(Connection con = DBConnection.getConnection()){
+            String query = "SELECT * FROM admin";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            while (rs.next()){
+                Admin a = new Admin(
+                        rs.getString("username"),
+                        rs.getString("password")
+                );
+                admins.add(a);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+
+
+        }
+        catch (Exception e) {
+
         }
     }
-
     public void saveAdmins(){
-        // simple safe approach: delete all and insert current list inside a transaction
-        try (Connection con = DBConnection.getConnection()) {
-            con.setAutoCommit(false);
-            try (Statement st = con.createStatement()) {
-                st.executeUpdate("DELETE FROM admin");
-            }
-
+        try(Connection con = DBConnection.getConnection()){
             String query = "INSERT INTO admin (username,password) VALUES (?, ?)";
-            try (PreparedStatement preparedStatement = con.prepareStatement(query)) {
-                for (Admin a  : admins) {
-                    preparedStatement.setString(1, a.getUsername());
-                    preparedStatement.setString(2, a.getPassword());
-                    preparedStatement.executeUpdate();
-                }
-            }
+            PreparedStatement preparedStatement = con.prepareStatement(query);
 
-            con.commit();
-            con.setAutoCommit(true);
-        } catch (Exception e){
-            e.printStackTrace();
+            for (Admin a  : admins) {
+
+                preparedStatement.setString(1, a.getUsername());
+                preparedStatement.setString(2, a.getPassword());
+
+                preparedStatement.executeUpdate();
+            }
+        }
+        catch (Exception e){
+
         }
     }
 
-    // optional: expose currently logged admin for callers
-    public Admin getLoggedInAdmin() {
-        return LoggedInAdmin;
-    }
+
+
 }

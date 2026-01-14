@@ -1,18 +1,11 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-
-import Cinema.CinemaManager;
-import Cinema.Cinema;
-import Cinema.Screen;
-import Ticket.TicketManager;
+import java.io.*;
 
 public class UserPaymentSelection extends JFrame {
-    private final String username;
-    private final String movieId;
-    private final String movieName;
-    private final String cinemaInfo;
-    private final JTextField seatField;
+    private String username, movieId, movieName, cinemaInfo;
+    private JTextField seatField;
     private int maxSeats = 0;
 
     public UserPaymentSelection(String username, String movieId, String movieName, String cinemaInfo) {
@@ -20,8 +13,6 @@ public class UserPaymentSelection extends JFrame {
         this.movieId = movieId;
         this.movieName = movieName;
         this.cinemaInfo = cinemaInfo;
-
-        seatField = new JTextField();
 
         extractSeatCapacity();
 
@@ -35,6 +26,8 @@ public class UserPaymentSelection extends JFrame {
         JLabel cinemaLabel = new JLabel("Cinema: " + cinemaInfo, SwingConstants.CENTER);
         JLabel seatLabel = new JLabel("Enter Seat Number (1 - " + maxSeats + "):", SwingConstants.CENTER);
 
+        seatField = new JTextField();
+
         JButton cardBtn = new JButton("Pay by Card");
         JButton cashBtn = new JButton("Pay at Cinema");
         JButton backBtn = new JButton("Back");
@@ -42,28 +35,30 @@ public class UserPaymentSelection extends JFrame {
         // apply theme and layout (centers content and constrains widths)
         applyTheme(movieLabel, cinemaLabel, seatLabel, seatField, cardBtn, cashBtn, backBtn);
 
-        // attach listeners
-        cardBtn.addActionListener(e -> {
-            String seat = seatField.getText().trim();
-            if (!isValidSeat(seat)) return;
-            new UserCardPayment(username, movieId, movieName, cinemaInfo, seat).setVisible(true);
-            dispose();
-        });
-
-        cashBtn.addActionListener(e -> {
-            String seat = seatField.getText().trim();
-            if (!isValidSeat(seat)) return;
-            saveTicket("cash", seat);
-            JOptionPane.showMessageDialog(this, "Ticket booked! Pay at cinema.");
-            dispose();
-        });
-
-        backBtn.addActionListener(e -> {
-            new UserCinemaSelection(username, movieName).setVisible(true);
-            dispose();
-        });
-
-        // Finalize window visibility moved after UI build in applyTheme
+        // attach listeners after theming (null-safe)
+        if (cardBtn != null) {
+            cardBtn.addActionListener(e -> {
+                String seat = seatField.getText().trim();
+                if (!isValidSeat(seat)) return;
+                new UserCardPayment(username, movieId, movieName, cinemaInfo, seat).setVisible(true);
+                dispose();
+            });
+        }
+        if (cashBtn != null) {
+            cashBtn.addActionListener(e -> {
+                String seat = seatField.getText().trim();
+                if (!isValidSeat(seat)) return;
+                saveTicket("cash", seat);
+                JOptionPane.showMessageDialog(this, "Ticket booked! Pay at cinema.");
+                dispose();
+            });
+        }
+        if (backBtn != null) {
+            backBtn.addActionListener(e -> {
+                new UserCinemaSelection(username, movieName).setVisible(true);
+                dispose();
+            });
+        }
     }
 
     // apply theme and build centered layout
@@ -208,40 +203,14 @@ public class UserPaymentSelection extends JFrame {
     }
 
     private void extractSeatCapacity() {
-        // Use CinemaManager to determine seat capacity for the selected cinema and screen
-        try {
-            // cinemaInfo expected format like "CinemaName | Screen S1 (2D)" or just cinema name
-            String cinemaName = cinemaInfo;
-            String screenId = null;
-            if (cinemaInfo.contains("|")) {
-                String[] parts = cinemaInfo.split("\\|", 2);
-                cinemaName = parts[0].trim();
-                String screenPart = parts[1].trim(); // e.g. "Screen S1 (2D)"
-                if (screenPart.contains("S")) {
-                    int idx = screenPart.indexOf('S');
-                    int end = screenPart.indexOf(' ', idx);
-                    if (end == -1) end = screenPart.length();
-                    screenId = screenPart.substring(idx, end).trim();
+        try (BufferedReader br = new BufferedReader(new FileReader("cinemas.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (cinemaInfo.contains(line.split(",")[1])) {
+                    maxSeats = Integer.parseInt(line.split(",")[4]);
+                    break;
                 }
             }
-
-            CinemaManager cm = CinemaManager.getCinemaManager();
-            for (Cinema c : cm.getCinemas()) {
-                if (c.getName().equalsIgnoreCase(cinemaName) || c.getCinemaid().equals(cinemaName)) {
-                    if (screenId == null && !c.getScreens().isEmpty()) {
-                        maxSeats = c.getScreens().get(0).getNumberOfSeats();
-                        return;
-                    }
-                    for (Screen s : c.getScreens()) {
-                        if (screenId == null || s.getScreenid().equalsIgnoreCase(screenId)) {
-                            maxSeats = s.getNumberOfSeats();
-                            return;
-                        }
-                    }
-                }
-            }
-            // fallback
-            maxSeats = 100;
         } catch (Exception e) {
             maxSeats = 100;
         }
@@ -262,45 +231,12 @@ public class UserPaymentSelection extends JFrame {
     }
 
     private void saveTicket(String paymentMethod, String seat) {
-        try {
-            // best-effort parse of cinemaInfo to cinemaId and screenId
-            String cinemaName = cinemaInfo;
-            String screenId = null;
-            if (cinemaInfo.contains("|")) {
-                String[] parts = cinemaInfo.split("\\|", 2);
-                cinemaName = parts[0].trim();
-                String screenPart = parts[1].trim();
-                if (screenPart.contains("S")) {
-                    int idx = screenPart.indexOf('S');
-                    int end = screenPart.indexOf(' ', idx);
-                    if (end == -1) end = screenPart.length();
-                    screenId = screenPart.substring(idx, end).trim();
-                }
-            }
-
-            // find cinema id by name
-            String cinemaId = null;
-            CinemaManager cm = CinemaManager.getCinemaManager();
-            for (Cinema c : cm.getCinemas()) {
-                if (c.getName().equalsIgnoreCase(cinemaName) || c.getCinemaid().equals(cinemaName)) {
-                    cinemaId = c.getCinemaid();
-                    break;
-                }
-            }
-
-            TicketManager tm = new TicketManager();
-            // seatLabel use seat number as label
-            int ticketId = tm.reserveSeat(username, getIntOrNull(movieId), cinemaId, screenId == null ? "S1" : screenId, seat, "unknown", paymentMethod, null);
-            if (ticketId <= 0) {
-                JOptionPane.showMessageDialog(this, "Seat is already booked. Please choose another seat.");
-            }
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("tickets.txt", true))) {
+            writer.write(username + "," + movieName + "," + cinemaInfo + "," + seat + "," + paymentMethod);
+            writer.newLine();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error saving ticket: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error saving ticket.");
         }
-    }
-
-    private Integer getIntOrNull(String s) {
-        try { return Integer.parseInt(s); } catch (Exception e) { return null; }
     }
 
     public static void main(String[] args) {

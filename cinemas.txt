@@ -1,9 +1,9 @@
-1,nueplex,S1,3D,50,7,9;00pm,9,1;00pm,6,9;00pm,S2,2D,21,6,4;00pm
+1,nueplex,S1,3D,50,S2,2D,21
 2,atrium
-3,askari,S1,3d,21,5,6;00pm,7,5;00pm,9,5;00pm
-4,Raiha2,S1,3d,1,7,4,2,1;00pm,7,1;00pm
-8,mushtaq,S1,2D,1000,8,12;30pm,1,2;00pm,7,4;00pm,6,1;00pm
-10,gold,S1,2D,10,9,8;00pm,9,9;00pm,S2,3D,20,9,9;00pm
+3,askari,S1,3d,21
+4,Raiha2,S1,3d,1,2,1;00pm
+8,mushtaq,S1,2D,1000,1,2;00pm
+10,gold,S1,2D,10,S2,3D,20
 25,nuplex,S1,2d,100
 25,nuplex
 25,nuplex

@@ -44,4 +44,8 @@ public class Movie {
     public String getRating() {
         return rating;
     }
+
+    public void setMovieid(int movieid) {
+        this.movieid = movieid;
+    }
 }

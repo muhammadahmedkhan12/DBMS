@@ -8,6 +8,8 @@ import Movie.Movie;
 import Cinema.CinemaManager;
 import Cinema.Cinema;
 import Cinema.Screen;
+import Cinema.Show;
+import Cinema.ShowManager;
 
 public class DeleteMovie extends JFrame {
     private JPanel MyPanel;
@@ -45,9 +47,9 @@ public class DeleteMovie extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String movieIdStr = Movieidtextfield.getText().trim();
-                String cinemaname = (String) Cinemaslist.getSelectedItem();
+                String cinemaName = (String) Cinemaslist.getSelectedItem();
 
-                if (movieIdStr.isEmpty() || cinemaname == null) {
+                if (movieIdStr.isEmpty() || cinemaName == null) {
                     JOptionPane.showMessageDialog(null, "Please enter all fields.");
                     return;
                 }
@@ -55,20 +57,15 @@ public class DeleteMovie extends JFrame {
                 int movieId;
                 try {
                     movieId = Integer.parseInt(movieIdStr);
-                } catch (Exception ex) {
+                } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(null, "Movie ID must be an integer.");
                     return;
                 }
 
-                Movie movie = manager.getmoviebyid(movieId);
-                if (movie == null) {
-                    JOptionPane.showMessageDialog(null, "Movie ID not found.");
-                    return;
-                }
-
+                // Find selected cinema
                 Cinema cinema = null;
                 for (Cinema c : cinemaManager.getCinemas()) {
-                    if (c.getName().equals(cinemaname)) {
+                    if (c.getName().equals(cinemaName)) {
                         cinema = c;
                         break;
                     }
@@ -78,25 +75,34 @@ public class DeleteMovie extends JFrame {
                     return;
                 }
 
-                boolean foundInAnyScreen = false;
+                boolean found = false;
+
+                // Iterate all screens in the selected cinema
                 for (Screen screen : cinema.getScreens()) {
-                    for (int i = screen.getMovies().size() - 1; i >= 0; i--) {
-                        if (screen.getMovies().get(i).getMovieid() == movieId) {
-                            screen.getMovies().remove(i);
-                            screen.getShowtimes().remove(i);
-                            foundInAnyScreen = true;
+                    for (int i = screen.getShows().size() - 1; i >= 0; i--) {
+                        Show show = screen.getShows().get(i);
+                        if (show.getMovie() != null && show.getMovie().getMovieid() == movieId) {
+                            // Delete from DB
+                            ShowManager.deleteShowFromDB(show.getShowId());
+                            // Remove from screen's show list
+                            screen.getShows().remove(i);
+                            found = true;
                         }
                     }
                 }
-                if (foundInAnyScreen) {
-                    cinemaManager.savecinemas();
-                    JOptionPane.showMessageDialog(null, "Movie removed from all screens in cinema " + cinema.getName());
+
+                if (found) {
+                    JOptionPane.showMessageDialog(null,
+                            "Show(s) of Movie ID " + movieId + " deleted from cinema " + cinema.getName());
                 } else {
-                    JOptionPane.showMessageDialog(null, "Movie not found in any screen of the selected cinema.");
+                    JOptionPane.showMessageDialog(null,
+                            "No show found for Movie ID " + movieId + " in cinema " + cinema.getName());
                 }
-                dispose();
+
             }
         });
+
+
 
         // apply theme/layout and then show
         applyTheme();

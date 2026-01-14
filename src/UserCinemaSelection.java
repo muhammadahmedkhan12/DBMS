@@ -14,6 +14,9 @@ public class UserCinemaSelection extends JFrame {
     private final String username;
     private final String initialMovie;
     private int selectedMovieId = -1;
+    String cinemaName;
+    String screentype ;
+    int showId ;
 
     public UserCinemaSelection(String username, String initialMovie) {
         this.username = username;
@@ -105,13 +108,12 @@ public class UserCinemaSelection extends JFrame {
                 JOptionPane.showMessageDialog(this, "Invalid show selected");
                 return;
             }
-
             new UserPaymentSelection(
                     username,
-                    selectedMovieId,
-                    showId,
                     initialMovie,
-                    selected
+                    cinemaName,
+                    screentype,
+                    showId
             ).setVisible(true);
 
             dispose();
@@ -161,36 +163,46 @@ public class UserCinemaSelection extends JFrame {
         cinemaListModel.clear();
 
         if (selectedMovieId == -1) {
-            cinemaListModel.addElement("Movie not found");
+            cinemaListModel.addElement("Error: Movie not found in database");
             return;
         }
 
-        String sql =
-                "SELECT c.name, sc.screenid, sc.screentype, sc.NumberOfSeats, " +
-                        "sh.showtime, sh.showid " +
-                        "FROM Cinemas c " +
-                        "JOIN Screens sc ON c.cinemaid = sc.cinemaid " +
-                        "JOIN Shows sh ON sc.screenid = sh.screenid " +
-                        "WHERE sh.movieid = ? " +
-                        "ORDER BY c.name, sh.showtime";
+        String query = """
+            SELECT c.name AS cinemaName,
+                   sc.screenid,
+                   sc.screentype,
+                   sc.NumberOfSeats AS seatCapacity,
+                   sh.showtime,
+                   sh.showid
+            FROM Cinemas c
+            JOIN Screens sc ON c.cinemaid = sc.cinemaid
+            JOIN Shows sh ON sc.screenid = sh.screenid
+            WHERE sh.movieid = ?
+            ORDER BY c.name, sh.showtime
+            """;
 
         try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+             PreparedStatement stmt = con.prepareStatement(query)) {
 
-            ps.setInt(1, selectedMovieId);
-            ResultSet rs = ps.executeQuery();
+            stmt.setInt(1, selectedMovieId);
+            ResultSet rs = stmt.executeQuery();
 
             boolean found = false;
-
             while (rs.next()) {
+                String cinemaName = rs.getString("cinemaName");
+                String screenId = rs.getString("screenid");   // Treat as String
+                String screenType = rs.getString("screentype");
+                int seatCapacity = rs.getInt("seatCapacity");
+                String showTime = rs.getString("showtime");
+                int showId = rs.getInt("showid");
+                this.cinemaName=cinemaName;
+                this.screentype=screenType;
+                this.showId=showId;
+
+                // Use %s for screenId to handle alphanumeric IDs
                 String info = String.format(
-                        "%s | Screen: S%d (%s) | Time: %s | Seats: %d | Show ID: %d",
-                        rs.getString("name"),
-                        rs.getInt("screenid"),
-                        rs.getString("screentype"),
-                        rs.getString("showtime"),
-                        rs.getInt("NumberOfSeats"),
-                        rs.getInt("showid")
+                        "%s | Screen: %s (%s) | Time: %s | Seats: %d | Show ID: %d",
+                        cinemaName, screenId, screenType, showTime, seatCapacity, showId
                 );
 
                 cinemaListModel.addElement(info);
@@ -198,14 +210,15 @@ public class UserCinemaSelection extends JFrame {
             }
 
             if (!found) {
-                cinemaListModel.addElement("No cinemas found for this movie.");
+                cinemaListModel.addElement("No cinemas found showing this movie.");
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            cinemaListModel.addElement("Error loading cinemas.");
+            cinemaListModel.addElement("Error loading cinemas from database.");
         }
     }
+
 
     private int extractShowId(String text) {
         try {

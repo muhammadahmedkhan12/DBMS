@@ -1,20 +1,29 @@
+import Database.DBConnection;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.io.*;
+import java.sql.Connection;
+import java.sql.*;
+
 
 public class UserPaymentSelection extends JFrame {
-    private String username, movieId, movieName, cinemaInfo;
+    private String username,  movieName, cinemaInfo,screenType;
+    int showId;
+
+
     private JTextField seatField;
     private int maxSeats = 0;
 
-    public UserPaymentSelection(String username, String movieId, String movieName, String cinemaInfo) {
+    public UserPaymentSelection(String username, String movieName,String screenType ,String cinemaInfo,int showId) {
         this.username = username;
-        this.movieId = movieId;
+        this.screenType = screenType;
         this.movieName = movieName;
         this.cinemaInfo = cinemaInfo;
+        this.showId= showId;
 
-        extractSeatCapacity();
+        extractSeatCapacityFromDB();
 
         setTitle("Choose Payment and Seat");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -40,7 +49,8 @@ public class UserPaymentSelection extends JFrame {
             cardBtn.addActionListener(e -> {
                 String seat = seatField.getText().trim();
                 if (!isValidSeat(seat)) return;
-                new UserCardPayment(username, movieId, movieName, cinemaInfo, seat).setVisible(true);
+
+                new UserCardPayment(username, movieName, screenType,cinemaInfo, seat,showId).setVisible(true);
                 dispose();
             });
         }
@@ -202,19 +212,32 @@ public class UserPaymentSelection extends JFrame {
         repaint();
     }
 
-    private void extractSeatCapacity() {
-        try (BufferedReader br = new BufferedReader(new FileReader("cinemas.txt"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (cinemaInfo.contains(line.split(",")[1])) {
-                    maxSeats = Integer.parseInt(line.split(",")[4]);
-                    break;
-                }
+    private void extractSeatCapacityFromDB() {
+        maxSeats = 100; // default in case of failure
+
+        String query = """
+        SELECT sc.NumberOfSeats
+        FROM Screens sc
+        JOIN Shows sh ON sc.ScreenID = sh.ScreenID
+        WHERE sh.ShowID = ?
+         """;
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(query)) {
+
+            ps.setInt(1, showId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                maxSeats = rs.getInt("NumberOfSeats");
             }
-        } catch (Exception e) {
-            maxSeats = 100;
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            // keep default maxSeats = 100
         }
     }
+
 
     private boolean isValidSeat(String seatStr) {
         try {
@@ -239,10 +262,5 @@ public class UserPaymentSelection extends JFrame {
         }
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            UserPaymentSelection ups = new UserPaymentSelection("testuser", "M001", "Inception", "CinemaX - Hall 1");
-            ups.setVisible(true);
-        });
-    }
+
 }

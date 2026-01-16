@@ -18,7 +18,7 @@ public class ChangePasswordPanel extends JFrame{
     public ChangePasswordPanel(){
         setContentPane(MyPanel);
         setTitle("Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 

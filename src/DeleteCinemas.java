@@ -20,7 +20,7 @@ public class DeleteCinemas extends JFrame {
     public DeleteCinemas() {
         setTitle("Delete Cinema");
         setContentPane(MyPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(500, 300);
         setLocationRelativeTo(null);
 

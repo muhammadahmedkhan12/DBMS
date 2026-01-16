@@ -1,5 +1,7 @@
 package Cinema;
 
+import Screen.Screen;
+
 import java.util.ArrayList;
 
 public class Cinema {

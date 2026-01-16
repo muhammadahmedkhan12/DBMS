@@ -81,17 +81,17 @@
 //        this.type = type;
 //    }
 //}
-package Cinema;
+package Screen;
 
+import Show.Show;
 import Database.DBConnection;
-import Movie.Movie;
 
 import java.util.ArrayList;
 import java.sql.*;
 
 public class Screen {
     private String screenId;
-    private String cinemaId;      // Which cinema this screen belongs to
+    private String cinemaId;
     private String screenType;
     private int seatCapacity;
 
@@ -106,41 +106,38 @@ public class Screen {
 
     }
     public static String getNextScreenId() {
-        String query = "SELECT MAX(ScreenID) AS MaxID FROM Screens";
-        try (Connection con = DBConnection.getConnection();
+        try (Connection con = DBConnection.getConnection()){
+            String query = "SELECT MAX(ScreenID) AS MaxID FROM Screens";
              PreparedStatement stmt = con.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
+             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                String maxId = rs.getString("MaxID"); // e.g., "S12"
+                String maxId = rs.getString("MaxID");
                 if (maxId != null) {
                     int num = Integer.parseInt(maxId.substring(1)); // remove 'S'
                     return "S" + (num + 1);
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
-        return "S1"; // default if table is empty
+        return "S1";
     }
 
-    // Getters
     public String getScreenId() { return screenId; }
     public String getCinemaId() { return cinemaId; }
     public String getScreenType() { return screenType; }
     public int getSeatCapacity() { return seatCapacity; }
     public ArrayList<Show> getShows() { return shows; }
 
-    // Setters
     public void setScreenType(String screenType) { this.screenType = screenType; }
     public void setSeatCapacity(int seatCapacity) { this.seatCapacity = seatCapacity; }
 
-    // Add a show
     public void addShow(Show show) {
         shows.add(show);
     }
 
-    // Remove a show by ID
     public void removeShow(int showId) {
         shows.removeIf(s -> s.getShowId() == showId);
     }

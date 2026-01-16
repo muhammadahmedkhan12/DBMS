@@ -4,12 +4,11 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import Movie.MovieManager;
-import Movie.Movie;
 import Cinema.CinemaManager;
 import Cinema.Cinema;
-import Cinema.Screen;
-import Cinema.Show;
-import Cinema.ShowManager;
+import Screen.Screen;
+import Show.Show;
+import Show.ShowManager;
 
 public class DeleteMovie extends JFrame {
     private JPanel MyPanel;
@@ -25,7 +24,7 @@ public class DeleteMovie extends JFrame {
 
     public DeleteMovie() {
         setTitle("Delete Movie");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(600, 360);
         setLocationRelativeTo(null);
 

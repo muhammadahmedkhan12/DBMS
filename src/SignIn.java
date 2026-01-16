@@ -17,7 +17,7 @@ public class SignIn extends JFrame {
 
     public SignIn() {
         setTitle("Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 

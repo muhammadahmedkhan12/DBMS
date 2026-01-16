@@ -27,7 +27,6 @@ public class SignUp extends JFrame {
     public SignUp(){
         setContentPane(SignUpPanel);
         setTitle("Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1300,900);
         setLocationRelativeTo(null);
 

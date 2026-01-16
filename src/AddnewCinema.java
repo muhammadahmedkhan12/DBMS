@@ -22,7 +22,7 @@ public class AddnewCinema extends JFrame {
 
     public AddnewCinema(){
         setContentPane(MyPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(500, 300);
         setLocationRelativeTo(null);
 
@@ -38,11 +38,15 @@ public class AddnewCinema extends JFrame {
                     JOptionPane.showMessageDialog(null, "Please fill in all fields.");
                     return;
                 }
+                if(cinemaManager.cinemaExists(cinemaId)) {
+                    JOptionPane.showMessageDialog(null, "Cinema ID already exists. Please use a different ID.");
+                    return;
+                }
 
                 Cinema newCinema = new Cinema(cinemaId, cinemaName);
                 cinemaManager.addcinema(newCinema);
                 JOptionPane.showMessageDialog(null, "Cinema added successfully!");
-
+                dispose();
             }
         });
         backButton.addActionListener(new ActionListener() {

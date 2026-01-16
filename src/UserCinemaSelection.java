@@ -25,7 +25,7 @@ public class UserCinemaSelection extends JFrame {
         setTitle("Select Cinema");
         setSize(1300, 900);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
 
         Color bg = new Color(45, 62, 80);
         Color fg = Color.WHITE;
@@ -138,10 +138,12 @@ public class UserCinemaSelection extends JFrame {
     }
 
     private void loadMovieRating() {
-        String sql = "SELECT movieid, rating FROM Movies WHERE movieName = ?";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+
+        try (Connection con = DBConnection.getConnection()){
+
+            String sql = "SELECT movieid, rating FROM Movies WHERE movieName = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setString(1, initialMovie);
             ResultSet rs = ps.executeQuery();
@@ -149,11 +151,13 @@ public class UserCinemaSelection extends JFrame {
             if (rs.next()) {
                 selectedMovieId = rs.getInt("movieid");
                 ratingLabel.setText("Rating: " + rs.getString("rating"));
-            } else {
+            }
+            else {
                 ratingLabel.setText("Rating: Not Available");
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             ratingLabel.setText("Rating: Error");
         }
@@ -167,7 +171,10 @@ public class UserCinemaSelection extends JFrame {
             return;
         }
 
-        String query = """
+
+
+        try (Connection con = DBConnection.getConnection()){
+            String query = """
             SELECT c.name AS cinemaName,
                    sc.screenid,
                    sc.screentype,
@@ -180,9 +187,7 @@ public class UserCinemaSelection extends JFrame {
             WHERE sh.movieid = ?
             ORDER BY c.name, sh.showtime
             """;
-
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement stmt = con.prepareStatement(query)) {
+             PreparedStatement stmt = con.prepareStatement(query);
 
             stmt.setInt(1, selectedMovieId);
             ResultSet rs = stmt.executeQuery();
@@ -199,7 +204,6 @@ public class UserCinemaSelection extends JFrame {
                 this.screentype=screenType;
                 this.showId=showId;
 
-                // Use %s for screenId to handle alphanumeric IDs
                 String info = String.format(
                         "%s | Screen: %s (%s) | Time: %s | Seats: %d | Show ID: %d",
                         cinemaName, screenId, screenType, showTime, seatCapacity, showId
@@ -213,7 +217,8 @@ public class UserCinemaSelection extends JFrame {
                 cinemaListModel.addElement("No cinemas found showing this movie.");
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             cinemaListModel.addElement("Error loading cinemas from database.");
         }
@@ -227,7 +232,8 @@ public class UserCinemaSelection extends JFrame {
                     return Integer.parseInt(part.replace("Show ID:", "").trim());
                 }
             }
-        } catch (Exception ignored) {}
+        }
+        catch (Exception ignored) {}
         return -1;
     }
 

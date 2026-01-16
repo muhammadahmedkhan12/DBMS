@@ -17,7 +17,7 @@ public class MakeNewAdmin extends JFrame{
 
     public MakeNewAdmin() {
         setContentPane(MyPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 

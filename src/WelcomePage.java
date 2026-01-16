@@ -13,7 +13,7 @@ public class WelcomePage extends JFrame{
     public WelcomePage(){
         setContentPane(WelcomePanel);
         setTitle("Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 

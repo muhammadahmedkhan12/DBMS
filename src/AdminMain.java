@@ -9,10 +9,10 @@ import Movie.MovieManager;
 import Movie.Movie;
 import Cinema.CinemaManager;
 import Cinema.Cinema;
-import Cinema.Screen;
-import Cinema.Show;
-import Cinema.ShowManager;
-import Cinema.ScreenManager;
+import Screen.Screen;
+import Show.Show;
+import Show.ShowManager;
+import Screen.ScreenManager;
 import java.util.ArrayList;
 
 public class AdminMain extends JFrame {
@@ -37,13 +37,13 @@ public class AdminMain extends JFrame {
     public AdminMain() {
         MyPanel = new JPanel();
         setContentPane(MyPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
         setSize(1300, 900);
         setLocationRelativeTo(null);
 
         final int INNER_MAX_WIDTH = 1000;
 
-        tableModel = new DefaultTableModel(new Object[]{"Movie ID", "Name", "Rating", "Add Movie", "Edit Movie"}, 0) {
+        tableModel = new DefaultTableModel(new Object[]{"Movie ID", "Name", "Rating", "Add Movie to Show", "Edit Movie"}, 0) {
             public boolean isCellEditable(int row, int column) {
                 return column == 3 || column == 4;
             }
@@ -61,8 +61,8 @@ public class AdminMain extends JFrame {
 
         loadMoviesToTable();
 
-        movieTable.getColumn("Add Movie").setCellRenderer(new ButtonRenderer());
-        movieTable.getColumn("Add Movie").setCellEditor(new ButtonEditor(new JCheckBox(), "add"));
+        movieTable.getColumn("Add Movie to Show").setCellRenderer(new ButtonRenderer());
+        movieTable.getColumn("Add Movie to Show").setCellEditor(new ButtonEditor(new JCheckBox(), "add"));
         movieTable.getColumn("Edit Movie").setCellRenderer(new ButtonRenderer());
         movieTable.getColumn("Edit Movie").setCellEditor(new ButtonEditor(new JCheckBox(), "edit"));
 
@@ -78,9 +78,9 @@ public class AdminMain extends JFrame {
         backPanel.add(backButton, BorderLayout.CENTER);
 
         NewAdminButton = new JButton("New Admin");
-        EditMoviesbutton = new JButton("Edit Movies");
+        EditMoviesbutton = new JButton("Edit Shows");
         Addnewmoviesbutton = new JButton("Add New Movie");
-        Deletemoviebutton = new JButton("Delete Movie");
+        Deletemoviebutton = new JButton("Delete Show");
         editcinemabutton = new JButton("Edit Cinema");
         Addnewcinema = new JButton("Add New Cinema");
         deletecinemabutton = new JButton("Delete Cinema");
@@ -123,7 +123,7 @@ public class AdminMain extends JFrame {
         EditMoviesbutton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new EditMovies();
+                new EditShows();
             }
         });
         Addnewmoviesbutton.addActionListener(new ActionListener() {
@@ -186,7 +186,7 @@ public class AdminMain extends JFrame {
         tableModel.setRowCount(0);
         ArrayList<Movie> movies = MovieManager.getManager().getMovies();
         for (Movie m : movies) {
-            tableModel.addRow(new Object[]{m.getMovieid(), m.getMoviename(), m.getRating(), "Add Movie", "Edit Movie"});
+            tableModel.addRow(new Object[]{m.getMovieid(), m.getMoviename(), m.getRating(), "Add Movie to Show", "Edit Movie"});
         }
     }
 
@@ -205,18 +205,17 @@ public class AdminMain extends JFrame {
         private String label;
         private String actionType;
         private int selectedRow;
+        private final JButton editorButton;
 
         public ButtonEditor(JCheckBox checkBox, String actionType) {
             super(checkBox);
             this.actionType = actionType;
-        }
-
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            label = (value == null) ? "" : value.toString();
-            selectedRow = row;
-            JButton button = new JButton(label);
-            button.addActionListener(new ActionListener() {
+            this.editorButton = new JButton();
+            this.editorButton.setOpaque(true);
+            // single listener attached to the editor button
+            this.editorButton.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
+                    // use selectedRow captured from getTableCellEditorComponent
                     int movieId = Integer.parseInt(tableModel.getValueAt(selectedRow, 0).toString());
                     if (actionType.equals("add")) {
                         new AddMovieToScreenFrame(movieId);
@@ -226,7 +225,20 @@ public class AdminMain extends JFrame {
                     fireEditingStopped();
                 }
             });
-            return button;
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            label = (value == null) ? "" : value.toString();
+            selectedRow = row;
+            editorButton.setText(label);
+            return editorButton;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            // return the label string so the table cell keeps the proper text after editing
+            return label;
         }
     }
 
@@ -697,3 +709,4 @@ public class AdminMain extends JFrame {
         SwingUtilities.invokeLater(() -> new AdminMain());
     }
 }
+

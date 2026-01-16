@@ -33,7 +33,7 @@ public class UserCardPayment extends JFrame {
         setTitle("Card Payment");
         setSize(1300, 900);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
 
         // Theme constants
         final int INNER_MAX_WIDTH = 450;

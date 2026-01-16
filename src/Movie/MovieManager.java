@@ -6,7 +6,6 @@ import java.sql.*;
 import java.util.ArrayList;
 
 public class MovieManager {
-
     private static MovieManager manager;
     private ArrayList<Movie> movies;
 
@@ -22,16 +21,14 @@ public class MovieManager {
         return manager;
     }
 
-    // ================= LOAD =================
-
     public void loadMoviesFromDB() {
         movies.clear();
 
         String query = "SELECT MovieID, MovieName, Rating FROM Movies";
 
-        try (Connection con = DBConnection.getConnection();
+        try (Connection con = DBConnection.getConnection()){
              PreparedStatement stmt = con.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
+             ResultSet rs = stmt.executeQuery() ;
 
             while (rs.next()) {
                 Movie m = new Movie(
@@ -44,19 +41,19 @@ public class MovieManager {
 
             System.out.println("Movies loaded from DB");
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // ================= ADD =================
+
 
     public void addMovie(Movie movie) {
         String query = "INSERT INTO Movies (MovieID,MovieName, Rating) VALUES (?,?,?)";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement stmt =
-                     con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection con = DBConnection.getConnection()){
+             PreparedStatement stmt = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 
             stmt.setInt(1, movie.getMovieid());
             stmt.setString(2, movie.getMoviename());
@@ -65,10 +62,11 @@ public class MovieManager {
 
             ResultSet keys = stmt.getGeneratedKeys();
             if (keys.next()) {
-                movie.setMovieid(keys.getInt(1)); // DB-generated ID
+                movie.setMovieid(keys.getInt(1));
             }
-            loadMoviesFromDB(); // OPTION  B ✔
-        } catch (Exception e) {
+            loadMoviesFromDB();
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -85,11 +83,12 @@ public class MovieManager {
             int rows = stmt.executeUpdate();
 
             if (rows > 0) {
-                loadMoviesFromDB(); // OPTION B ✔
+                loadMoviesFromDB();
                 return true;
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -101,8 +100,8 @@ public class MovieManager {
 
         String query = "UPDATE Movies SET MovieName = ?, Rating = ? WHERE MovieID = ?";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement stmt = con.prepareStatement(query)) {
+        try (Connection con = DBConnection.getConnection()){
+             PreparedStatement stmt = con.prepareStatement(query);
 
             stmt.setString(1, newName);
             stmt.setString(2, newRating);
@@ -111,17 +110,17 @@ public class MovieManager {
             int rows = stmt.executeUpdate();
 
             if (rows > 0) {
-                loadMoviesFromDB(); // OPTION B ✔
+                loadMoviesFromDB();
                 return true;
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
 
         return false;
     }
-
 
     public ArrayList<Movie> getMovies() {
         return movies;

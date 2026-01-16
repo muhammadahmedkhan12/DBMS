@@ -1,18 +1,17 @@
-package Cinema;
+package Show;
 
 import Database.DBConnection;
 import Movie.Movie;
 import Movie.MovieManager;
+import Screen.Screen;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.*;
 
 
 public class ShowManager {
 
-    // Save all shows of a screen to the database
     public static void saveShows(Screen screen) {
         String query = "INSERT INTO Shows (ShowID, MovieID, ScreenID, ShowTime) VALUES (?, ?, ?, ?)";
 
@@ -47,7 +46,6 @@ public class ShowManager {
                     int movieId = rs.getInt("MovieID");
                     String showTime = rs.getString("ShowTime");
 
-                    // Get the Movie object from MovieManager
                     MovieManager manager = MovieManager.getManager();
                     Movie movie = manager.getMovieById(movieId);
                     if (movie != null) {
@@ -58,7 +56,8 @@ public class ShowManager {
             }
 
             System.out.println("Shows loaded for screen " + screen.getScreenId());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -68,7 +67,25 @@ public class ShowManager {
              PreparedStatement stmt = con.prepareStatement(query)) {
             stmt.setInt(1, showId);
             stmt.executeUpdate();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void updateShow(Show show) {
+        String query = "UPDATE Shows SET ShowTime = ? WHERE ShowID = ?";
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setString(1, show.getShowTime());
+            stmt.setInt(2, show.getShowId());
+            stmt.executeUpdate();
+
+            System.out.println("Show updated: ShowID = " + show.getShowId());
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }

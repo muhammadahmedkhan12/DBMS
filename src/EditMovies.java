@@ -22,7 +22,7 @@ public class EditMovies extends JFrame {
 
     public EditMovies() {
         setContentPane(MyPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(500, 320);
         setLocationRelativeTo(null);
 

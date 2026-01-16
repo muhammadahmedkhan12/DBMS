@@ -2,13 +2,12 @@ package Cinema;
 
 import Database.DBConnection;
 import Movie.Movie;
-import Movie.MovieManager;
-import java.sql.*;
+import Screen.Screen;
+import Show.Show;
+import Show.ShowManager;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.sql.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class CinemaManager {
     private static CinemaManager cinemaManager = new CinemaManager();
@@ -27,7 +26,6 @@ public class CinemaManager {
         savecinemas();
     }
     public String addMovieToCinema(Cinema cinema, Screen screen, Movie movie, String showtime) {
-        // 1️⃣ Find cinema and screen as before
         Cinema foundCinema = null;
         for (Cinema c : cinemas) {
             if (c.getCinemaid().equals(cinema.getCinemaid())) {
@@ -46,11 +44,12 @@ public class CinemaManager {
         }
         if (foundScreen == null) return "Screen not found";
 
-        // 2️⃣ Insert into DB without specifying ShowID
-        String query = "INSERT INTO Shows (MovieID, ScreenID, ShowTime) VALUES (?, ?, ?)";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement stmt = con.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+        try (Connection con = DBConnection.getConnection()){
+
+            String query = "INSERT INTO Shows (MovieID, ScreenID, ShowTime) VALUES (?, ?, ?)";
+
+            PreparedStatement stmt = con.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
 
             stmt.setInt(1, movie.getMovieid());
             stmt.setString(2, foundScreen.getScreenId());
@@ -65,7 +64,8 @@ public class CinemaManager {
                 }
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return "Error adding movie to cinema";
         }
@@ -78,19 +78,18 @@ public class CinemaManager {
 
 
     public String deleteMovieFromCinema(Cinema cinema, Screen screen, Movie movie) {
-        // Find the show in the screen that matches the movie
         Show toRemove = null;
 
         for (Show s : screen.getShows()) {
             if (s.getMovie().getMovieid() == movie.getMovieid()) {
                 toRemove = s;
-                break; // remove only the first show of this movie; remove all if needed
+                break;
             }
         }
 
         if (toRemove != null) {
-            screen.removeShow(toRemove.getShowId()); // remove the Show from the screen
-            ShowManager.saveShows(screen); // save the updated shows to DB
+            screen.removeShow(toRemove.getShowId());
+            ShowManager.saveShows(screen);
             return movie.getMoviename() + " is successfully removed from cinema "
                     + cinema.getName() + " screen " + screen.getScreenId();
         }
@@ -110,11 +109,10 @@ public class CinemaManager {
             int rows = stmt.executeUpdate();
             if (rows > 0) {
                 System.out.println("Cinema updated successfully in DB");
-            } else {
+            }
+            else {
                 System.out.println("Cinema ID not found in DB");
             }
-
-            // Optionally update in-memory object
             for (Cinema c : cinemas) {
                 if (c.getCinemaid().equals(cinemaId)) {
                     c.setName(newName);
@@ -122,7 +120,8 @@ public class CinemaManager {
                 }
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -138,14 +137,15 @@ public class CinemaManager {
             int rows = stmt.executeUpdate();
             if (rows > 0) {
                 System.out.println("Cinema deleted successfully from DB");
-            } else {
+            }
+            else {
                 System.out.println("Cinema ID not found in DB");
             }
 
-            // Remove from in-memory list as well
             cinemas.removeIf(c -> c.getCinemaid().equals(cinemaId));
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -155,87 +155,6 @@ public class CinemaManager {
         return cinemas;
     }
 
-//    public void loadcinemas() {
-//        try {
-//            Scanner scanner = new Scanner(new File("cinemas.txt"));
-//            while (scanner.hasNextLine()) {
-//                String line = scanner.nextLine().trim();
-//                if (line.isEmpty()) {
-//                    continue;
-//                }
-//
-//                String[] data = line.split(",");
-//
-//                String cinemaId = data[0];
-//                String cinemaName = data[1];
-//                Cinema cinema = new Cinema(cinemaId, cinemaName);
-//
-//                int i = 2;
-//                Screen.resetScreenNumber();
-//                while (i + 2 < data.length) {
-//                    String screenId = data[i];
-//                    String screenType = data[i + 1];
-//                    int numberOfSeats = Integer.parseInt(data[i + 2]);
-//                    i += 3;
-//
-//                    Screen screen = new Screen(screenId, screenType, numberOfSeats);
-//
-//                    while (i + 1 < data.length && !data[i].startsWith("s") && !data[i].startsWith("S")) {
-//                        String movieIdStr = data[i];
-//                        String showtime = data[i + 1];
-//                        int movieId;
-//                        try {
-//                            movieId = Integer.parseInt(movieIdStr);
-//                        } catch (Exception ex) {
-//                            break;
-//                        }
-//
-//                        Movie movie = MovieManager.getManager().getmoviebyid(movieId);
-//
-//                        if (movie != null) {
-//                            screen.addMovie(movie, showtime);
-//                        }
-//                        i += 2;
-//                    }
-//
-//                    cinema.addScreen(screen);
-//                }
-//
-//                cinemas.add(cinema);
-//            }
-//
-//            scanner.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-//    public void savecinemas() {
-//        try {
-//            FileWriter writer = new FileWriter("cinemas.txt");
-//            for (int i = 0; i < cinemas.size(); i++) {
-//                Cinema cinema = cinemas.get(i);
-//                writer.write(cinema.getCinemaid() + "," + cinema.getName());
-//
-//                ArrayList<Screen> screens = cinema.getScreens();
-//                for (int j = 0; j < screens.size(); j++) {
-//                    Screen screen = screens.get(j);
-//                    writer.write("," + screen.getScreenid() + "," + screen.getScreentype() + "," + screen.getNumberOfSeats());
-//
-//                    ArrayList<Movie> movies = screen.getMovies();
-//                    ArrayList<String> showtimes = screen.getShowtimes();
-//
-//                    for (int k = 0; k < movies.size(); k++) {
-//                        writer.write("," + movies.get(k).getMovieid() + "," + showtimes.get(k));
-//                    }
-//                }
-//                writer.write("\n");
-//            }
-//            writer.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 public void savecinemas() {
     String insertQuery = "INSERT INTO Cinemas (CinemaID, Name) VALUES (?, ?)";
     String checkQuery = "SELECT COUNT(*) FROM Cinemas WHERE CinemaID = ?";
@@ -244,7 +163,6 @@ public void savecinemas() {
 
         for (Cinema cinema : cinemas) {
 
-            // Check if CinemaID already exists
             try (PreparedStatement checkStmt = con.prepareStatement(checkQuery)) {
                 checkStmt.setString(1, cinema.getCinemaid());
                 try (ResultSet rs = checkStmt.executeQuery()) {
@@ -252,12 +170,10 @@ public void savecinemas() {
                     int count = rs.getInt(1);
                     if (count > 0) {
                         System.out.println("Cinema " + cinema.getCinemaid() + " already exists. Skipping insert.");
-                        continue; // skip inserting duplicate
+                        continue;
                     }
                 }
             }
-
-            // Insert new cinema
             try (PreparedStatement stmt = con.prepareStatement(insertQuery)) {
                 stmt.setString(1, cinema.getCinemaid());
                 stmt.setString(2, cinema.getName());
@@ -270,6 +186,14 @@ public void savecinemas() {
         e.printStackTrace();
     }
 }
+    public boolean cinemaExists(String cinemaId) {
+        for (Cinema c : cinemas) {
+            if (c.getCinemaid().equals(cinemaId)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public void loadcinemas() {
         cinemas.clear();
@@ -288,7 +212,8 @@ public void savecinemas() {
             }
 
             System.out.println("Cinemas loaded from database successfully!");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }

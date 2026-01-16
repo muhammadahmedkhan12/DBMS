@@ -11,8 +11,7 @@ public class AdminWelcome extends JFrame{
 
     public AdminWelcome(){
         setContentPane(MyPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(500,300);
+        setSize(1300,900);
         setLocationRelativeTo(null);
 
         // apply centralized theme (matches Start/AdminWelcome look exactly)
@@ -25,6 +24,7 @@ public class AdminWelcome extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
                 new AdminSignIn();
+                dispose();
             }
         });
 

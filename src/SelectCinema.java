@@ -18,7 +18,7 @@ public class SelectCinema extends JFrame {
     public SelectCinema() {
         // basic frame
         setTitle("Select Cinema - Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 

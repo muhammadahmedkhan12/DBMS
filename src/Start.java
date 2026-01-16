@@ -12,11 +12,10 @@ public class Start extends JFrame{
     public Start() {
         setContentPane(MyPanel);
         setTitle("Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 
-        // hide the "admin or user" title
         if (WelcomeLabel != null) {
             WelcomeLabel.setVisible(false);
             WelcomeLabel.setText(""); // optional: clear text as well

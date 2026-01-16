@@ -50,7 +50,7 @@ public class Addnewmovie extends JFrame {
         myPanel.add(BackButton);
 
         setContentPane(myPanel);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(500, 300);
         setLocationRelativeTo(null);
 

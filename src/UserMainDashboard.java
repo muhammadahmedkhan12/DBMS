@@ -25,7 +25,7 @@ public class UserMainDashboard extends JFrame {
         // set content and basic frame props
         setContentPane(MyPanel);
         setTitle("Cinema Ticket Booking System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         setSize(1300, 900);
         setLocationRelativeTo(null);
 

@@ -1,8 +1,10 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.sql.*;
-import Database.DBConnection;
+import java.util.ArrayList;
+import Movie.Movie;
+import Movie.MovieManager;
+import Show.ShowManager;
 
 public class UserCinemaSelection extends JFrame {
 
@@ -13,10 +15,8 @@ public class UserCinemaSelection extends JFrame {
 
     private final String username;
     private final String initialMovie;
-    private int selectedMovieId = -1;
-    String cinemaName;
-    String screentype ;
-    int showId ;
+    private Movie selectedMovie;
+    private ArrayList<String[]> shows;
 
     public UserCinemaSelection(String username, String initialMovie) {
         this.username = username;
@@ -25,7 +25,6 @@ public class UserCinemaSelection extends JFrame {
         setTitle("Select Cinema");
         setSize(1300, 900);
         setLocationRelativeTo(null);
-        
 
         Color bg = new Color(45, 62, 80);
         Color fg = Color.WHITE;
@@ -96,24 +95,26 @@ public class UserCinemaSelection extends JFrame {
         center.add(btnPanel);
 
         next.addActionListener(e -> {
-            String selected = cinemaList.getSelectedValue();
+            int selectedIndex = cinemaList.getSelectedIndex();
 
-            if (selected == null) {
+            if (selectedIndex == -1) {
                 JOptionPane.showMessageDialog(this, "Please select a cinema & showtime");
                 return;
             }
 
-            int showId = extractShowId(selected);
-            if (showId == -1) {
+            if (shows == null || selectedIndex >= shows.size()) {
                 JOptionPane.showMessageDialog(this, "Invalid show selected");
                 return;
             }
+
+            String[] selectedShow = shows.get(selectedIndex);
+
             new UserPaymentSelection(
                     username,
                     initialMovie,
-                    cinemaName,
-                    screentype,
-                    showId
+                    selectedShow[2],
+                    selectedShow[0],
+                    Integer.parseInt(selectedShow[5])
             ).setVisible(true);
 
             dispose();
@@ -138,103 +139,37 @@ public class UserCinemaSelection extends JFrame {
     }
 
     private void loadMovieRating() {
+        selectedMovie = MovieManager.getManager().getMovieByName(initialMovie);
 
-
-        try (Connection con = DBConnection.getConnection()){
-
-            String sql = "SELECT movieid, rating FROM Movies WHERE movieName = ?";
-            PreparedStatement ps = con.prepareStatement(sql);
-
-            ps.setString(1, initialMovie);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                selectedMovieId = rs.getInt("movieid");
-                ratingLabel.setText("Rating: " + rs.getString("rating"));
-            }
-            else {
-                ratingLabel.setText("Rating: Not Available");
-            }
-
+        if (selectedMovie != null) {
+            ratingLabel.setText("Rating: " + selectedMovie.getRating());
         }
-        catch (Exception e) {
-            e.printStackTrace();
-            ratingLabel.setText("Rating: Error");
+        else {
+            ratingLabel.setText("Rating: Not Available");
         }
     }
 
     private void loadCinemasFromDB() {
         cinemaListModel.clear();
 
-        if (selectedMovieId == -1) {
+        if (selectedMovie == null) {
             cinemaListModel.addElement("Error: Movie not found in database");
             return;
         }
+        shows = ShowManager.getShowsByMovieId(selectedMovie.getMovieid());
 
-
-
-        try (Connection con = DBConnection.getConnection()){
-            String query = """
-            SELECT c.name AS cinemaName,
-                   sc.screenid,
-                   sc.screentype,
-                   sc.NumberOfSeats AS seatCapacity,
-                   sh.showtime,
-                   sh.showid
-            FROM Cinemas c
-            JOIN Screens sc ON c.cinemaid = sc.cinemaid
-            JOIN Shows sh ON sc.screenid = sh.screenid
-            WHERE sh.movieid = ?
-            ORDER BY c.name, sh.showtime
-            """;
-             PreparedStatement stmt = con.prepareStatement(query);
-
-            stmt.setInt(1, selectedMovieId);
-            ResultSet rs = stmt.executeQuery();
-
-            boolean found = false;
-            while (rs.next()) {
-                String cinemaName = rs.getString("cinemaName");
-                String screenId = rs.getString("screenid");   // Treat as String
-                String screenType = rs.getString("screentype");
-                int seatCapacity = rs.getInt("seatCapacity");
-                String showTime = rs.getString("showtime");
-                int showId = rs.getInt("showid");
-                this.cinemaName=cinemaName;
-                this.screentype=screenType;
-                this.showId=showId;
-
+        if (shows.isEmpty()) {
+            cinemaListModel.addElement("No cinemas found showing this movie.");
+        }
+        else {
+            for (String[] show : shows) {
                 String info = String.format(
-                        "%s | Screen: %s (%s) | Time: %s | Seats: %d | Show ID: %d",
-                        cinemaName, screenId, screenType, showTime, seatCapacity, showId
+                        "%s | Screen: %s (%s) | Time: %s | Seats: %s | Show ID: %s",
+                        show[0], show[1], show[2], show[3], show[4], show[5]
                 );
-
                 cinemaListModel.addElement(info);
-                found = true;
-            }
-
-            if (!found) {
-                cinemaListModel.addElement("No cinemas found showing this movie.");
-            }
-
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            cinemaListModel.addElement("Error loading cinemas from database.");
-        }
-    }
-
-
-    private int extractShowId(String text) {
-        try {
-            for (String part : text.split("\\|")) {
-                if (part.trim().startsWith("Show ID:")) {
-                    return Integer.parseInt(part.replace("Show ID:", "").trim());
-                }
             }
         }
-        catch (Exception ignored) {}
-        return -1;
     }
 
     public static void main(String[] args) {

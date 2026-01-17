@@ -12,7 +12,6 @@ import Show.Show;
 
 public class ScreenManager {
 
-    // Save a single screen to the database
     public static void saveScreen(Screen screen) {
 
         try (Connection con = DBConnection.getConnection()){
@@ -22,7 +21,7 @@ public class ScreenManager {
             PreparedStatement stmt = con.prepareStatement(query);
 
             stmt.setString(1, screen.getScreenId());
-            stmt.setString(2, screen.getCinemaId()); // <-- must provide CinemaID
+            stmt.setString(2, screen.getCinemaId());
             stmt.setString(3, screen.getScreenType());
             stmt.setInt(4, screen.getSeatCapacity());
 

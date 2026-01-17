@@ -278,7 +278,7 @@ public class AdminMain extends JFrame {
             if (cinemaCombo.getItemCount() > 0) {
                 Cinema selectedCinema = CinemaManager.getCinemaManager().getCinemas().get(cinemaCombo.getSelectedIndex());
 
-                // ✅ load screens from DB for this cinema
+
                 ScreenManager.loadScreens(selectedCinema);
 
                 screenCombo.removeAllItems();

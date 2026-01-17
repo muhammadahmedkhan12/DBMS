@@ -18,7 +18,7 @@ public class Start extends JFrame{
 
         if (WelcomeLabel != null) {
             WelcomeLabel.setVisible(false);
-            WelcomeLabel.setText(""); // optional: clear text as well
+            WelcomeLabel.setText("");
         }
 
         // apply same theme as AdminWelcome (delegates to static helper)
@@ -114,7 +114,6 @@ public class Start extends JFrame{
                         BorderFactory.createEmptyBorder(20,0,20,0)));
             }
         }
-        // style accent (back/danger) buttons
         if (accentButtons != null) {
             for (JButton b : accentButtons) {
                 if (b == null) continue;
@@ -141,7 +140,6 @@ public class Start extends JFrame{
     }
 
     public static void main(String[] args) {
-        // create UI on EDT
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {

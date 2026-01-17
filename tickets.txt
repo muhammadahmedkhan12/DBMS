@@ -21,3 +21,4 @@ testuser,animal 3,mushtaq | Screen S1 (2D), 1000 seats @ 2;00pm,5,cash
 mushtaq12,dhoom 2,nueplex | Screen S2 (2D), 21 seats @ 4;00pm,2,cash
 ahmed12,animal 3,mushtaq | Screen S1 (2D), 1000 seats @ 2;00pm,2,cash
 testuser,mustest,3d,2,cash
+ahmed12,spiderman,3d,2,cash

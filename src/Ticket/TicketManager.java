@@ -2,14 +2,8 @@ package Ticket;
 
 import Database.DBConnection;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class TicketManager {
     private ArrayList<Ticket> tickets = new ArrayList<>();
@@ -18,14 +12,11 @@ public class TicketManager {
         loadtickets();
     }
 
-    public void addticket(Ticket t ){
-        tickets.add(t);
-        savetickets();
-    }
+
     public ArrayList<Ticket> getTicketusingusername(String username){
         ArrayList<Ticket> result = new ArrayList<>();
         for (Ticket t : tickets){
-           if (t.getUsername().equals(username)){
+            if (t.getUsername().equals(username)){
                 result.add(t);
             }
         }
@@ -33,52 +24,62 @@ public class TicketManager {
     }
 
     public void loadtickets() {
-        try(Connection con = DBConnection.getConnection()) {
-            String query = "SELECT * FROM ticket";
+        tickets.clear();
+
+        try (Connection con = DBConnection.getConnection()) {
+            String query = "SELECT * FROM Tickets";
             Statement stmt = con.createStatement();
             ResultSet rs = stmt.executeQuery(query);
 
             while (rs.next()) {
-                for (Ticket t : tickets) {
-                    Ticket ticket = new Ticket(
-                            rs.getString("ticketid"),
-                            rs.getString("username"),
-                            rs.getString("seatid"),
-                            rs.getString("showtimeid"),
-                            rs.getString("cinemaid"),
-                            rs.getString("movieid"),
-                            rs.getString("paymentmethod")
-                    );
-                    tickets.add(ticket);
-                }
+                Ticket ticket = new Ticket(
+                        rs.getString("TicketID"),
+                        rs.getString("Username"),
+                        rs.getString("SeatID"),
+                        rs.getString("ShowtimeID"),
+                        rs.getString("CinemaID"),
+                        rs.getString("MovieID"),
+                        rs.getString("PaymentMethod")
+                );
+                tickets.add(ticket);
             }
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void savetickets() {
-        try (Connection con = DBConnection.getConnection()) {
-            String query = "INSERT INTO ticket (ticketid, username, seatid, showtimeid, cinemaid, movieid, paymentmethod) VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-            for (Ticket t : tickets) {
-                PreparedStatement ps = con.prepareStatement(query);
-                ps.setString(1, t.getTicketid());
-                ps.setString(2, t.getUsername());
-                ps.setString(3, t.getSeatid());
-                ps.setString(4, t.getShowtimeid());
-                ps.setString(5, t.getCinemaid());
-                ps.setString(6, t.getMovieid());
-                ps.setString(7, t.getPaymentmethod());
-                ps.executeUpdate();
-            }
+            System.out.println("Tickets loaded from database: " + tickets.size());
         }
         catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+
+    public static boolean saveTicket(String username, String movieName, String cinemaName,
+                                     int seatNumber, String paymentMethod, String screenType) {
+        String sql = "INSERT INTO Tickets " +
+                "(Username, MovieName, CinemaName, SeatNumber, PaymentMethod, ScreenType) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
+
+        try (Connection con = DBConnection.getConnection()){
+             PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setString(1, username);
+            ps.setString(2, movieName);
+            ps.setString(3, cinemaName);
+            ps.setInt(4, seatNumber);
+            ps.setString(5, paymentMethod);
+            ps.setString(6, screenType);
+
+            ps.executeUpdate();
+            System.out.println("Ticket saved successfully for user: " + username);
+            return true;
+
+        }
+        catch (SQLException ex) {
+            if (ex.getMessage().contains("UQ_Ticket")) {
+                System.err.println("Seat " + seatNumber + " already booked.");
+            }
+            else {
+                ex.printStackTrace();
+            }
+            return false;
+        }
+    }
 }
-
-
-

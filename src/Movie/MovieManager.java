@@ -134,4 +134,38 @@ public class MovieManager {
         }
         return null;
     }
+    public Movie getMovieByName(String movieName) {
+        for (Movie m : movies) {
+            if (m.getMoviename().equalsIgnoreCase(movieName)) {
+                return m;
+            }
+        }
+        String sql = "SELECT MovieID, MovieName, Rating FROM Movies WHERE MovieName = ?";
+
+        try (Connection con = DBConnection.getConnection()){
+             PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setString(1, movieName);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                Movie movie = new Movie(
+                        rs.getInt("MovieID"),
+                        rs.getString("MovieName"),
+                        rs.getString("Rating")
+                );
+
+                movies.add(movie);
+
+                System.out.println("Movie found: " + movieName + " (ID: " + movie.getMovieid() + ")");
+                return movie;
+            }
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 }

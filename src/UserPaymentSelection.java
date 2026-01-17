@@ -6,12 +6,12 @@ import java.awt.*;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.*;
-
+import Ticket.TicketManager;
 
 public class UserPaymentSelection extends JFrame {
     private String username,  movieName, cinemaInfo,screenType;
     int showId;
-
+    String seat;
 
     private JTextField seatField;
     private int maxSeats = 0;
@@ -44,21 +44,19 @@ public class UserPaymentSelection extends JFrame {
         // apply theme and layout (centers content and constrains widths)
         applyTheme(movieLabel, cinemaLabel, seatLabel, seatField, cardBtn, cashBtn, backBtn);
 
-        // attach listeners after theming (null-safe)
         if (cardBtn != null) {
             cardBtn.addActionListener(e -> {
-                String seat = seatField.getText().trim();
+                seat = seatField.getText().trim();
                 if (!isValidSeat(seat)) return;
-
                 new UserCardPayment(username, movieName, screenType,cinemaInfo, seat,showId).setVisible(true);
                 dispose();
             });
         }
         if (cashBtn != null) {
             cashBtn.addActionListener(e -> {
-                String seat = seatField.getText().trim();
+                seat = seatField.getText().trim();
                 if (!isValidSeat(seat)) return;
-                saveTicket("cash", seat);
+                saveTicket();
                 JOptionPane.showMessageDialog(this, "Ticket booked! Pay at cinema.");
                 dispose();
             });
@@ -232,9 +230,9 @@ public class UserPaymentSelection extends JFrame {
                 maxSeats = rs.getInt("NumberOfSeats");
             }
 
-        } catch (SQLException ex) {
+        }
+        catch (SQLException ex) {
             ex.printStackTrace();
-            // keep default maxSeats = 100
         }
     }
 
@@ -253,13 +251,17 @@ public class UserPaymentSelection extends JFrame {
         return true;
     }
 
-    private void saveTicket(String paymentMethod, String seat) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("tickets.txt", true))) {
-            writer.write(username + "," + movieName + "," + cinemaInfo + "," + seat + "," + paymentMethod);
-            writer.newLine();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error saving ticket.");
+
+    private boolean saveTicket() {
+        int seatNumber = Integer.parseInt(seat);
+
+        boolean success = TicketManager.saveTicket(username, movieName, cinemaInfo, seatNumber, "Cash", screenType);
+
+        if (!success) {
+            JOptionPane.showMessageDialog(this, "Seat " + seatNumber + " has just been booked. Please select another seat.");
         }
+
+        return success;
     }
 
 

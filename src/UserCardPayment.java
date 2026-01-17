@@ -1,8 +1,9 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.sql.*;
-import Database.DBConnection;
+
+import Ticket.TicketManager;
+
 
 public class UserCardPayment extends JFrame {
 
@@ -128,7 +129,6 @@ public class UserCardPayment extends JFrame {
         inner.add(cardRow);
         inner.add(Box.createVerticalStrut(12));
 
-        // Expiry field
         JLabel expLabel = new JLabel("Expiry (MM/YY):");
         expLabel.setForeground(fg);
         expLabel.setFont(labelFont);
@@ -147,7 +147,6 @@ public class UserCardPayment extends JFrame {
         inner.add(expRow);
         inner.add(Box.createVerticalStrut(12));
 
-        // CVV field
         JLabel cvvLabel = new JLabel("CVV:");
         cvvLabel.setForeground(fg);
         cvvLabel.setFont(labelFont);
@@ -194,7 +193,6 @@ public class UserCardPayment extends JFrame {
         buttonsRow.add(backBtn);
         inner.add(buttonsRow);
 
-        // Center the inner panel
         JPanel centerWrapper = new JPanel(new GridBagLayout());
         centerWrapper.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
@@ -204,7 +202,6 @@ public class UserCardPayment extends JFrame {
         centerWrapper.add(inner, gbc);
         root.add(centerWrapper, BorderLayout.CENTER);
 
-        // Actions
         submit.addActionListener(e -> {
             if (cardField.getText().isBlank()
                     || expField.getText().isBlank()
@@ -215,10 +212,8 @@ public class UserCardPayment extends JFrame {
 
             if (saveTicket()) {
                 JOptionPane.showMessageDialog(this,
-                        "Payment Successful!\n\n" +
-                                "Movie: " + movieName + "\n" +
-                                "Cinema: " + cinemaInfo + "\n" +
-                                "Seat: " + seat);
+                        "Payment Successful!\n\n" + "Movie: " + movieName + "\n" +
+                                "Cinema: " + cinemaInfo + "\n" + "Seat: " + seat);
                 new UserMainDashboard(username).setVisible(true);
                 dispose();
             } else {
@@ -229,11 +224,7 @@ public class UserCardPayment extends JFrame {
 
         backBtn.addActionListener(e -> {
             new UserPaymentSelection(
-                    username,
-                    movieName,
-                    screentype,
-                    cinemaInfo,
-                    showId
+                    username, movieName, screentype, cinemaInfo, showId
             ).setVisible(true);
             dispose();
         });
@@ -247,33 +238,13 @@ public class UserCardPayment extends JFrame {
     private boolean saveTicket() {
         int seatNumber = Integer.parseInt(seat);
 
-        String sql = "INSERT INTO Tickets " +
-                "(Username, MovieName, CinemaName, SeatNumber, PaymentMethod,ScreenType) " +
-                "VALUES (?, ?, ?, ?,?,? )";
+        boolean success = TicketManager.saveTicket(username, movieName, cinemaInfo, seatNumber, "Card", screentype);
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, username);
-            ps.setString(2, movieName);
-            ps.setString(3, cinemaInfo);
-            ps.setInt(4, seatNumber);
-            ps.setString(5, "Card");
-            ps.setString(6, screentype);
-
-            ps.executeUpdate();
-            return true;
-
-        } catch (SQLException ex) {
-            if (ex.getMessage().contains("UQ_Ticket")) {
-                JOptionPane.showMessageDialog(this,
-                        "Seat " + seatNumber + " has just been booked. Please select another seat.");
-            } else {
-                ex.printStackTrace();
-            }
-            return false;
+        if (!success) {
+            JOptionPane.showMessageDialog(this, "Seat " + seatNumber + " has just been booked. Please select another seat.");
         }
-    }
 
+        return success;
+    }
 
 }
